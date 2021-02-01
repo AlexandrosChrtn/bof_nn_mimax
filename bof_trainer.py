@@ -4,6 +4,17 @@ import torch.nn.functional as F
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
+def photonic_sigmoid(x, cutoff=2):
+    A1 = 0.060
+    A2 = 1.005
+    x0 = 0.145
+    d = 0.033
+    x = x - x0
+    x[x > cutoff] = 1
+    y = A2 + (A1 - A2) / (1 + torch.exp(x / d))
+    return y
+
+
 class Boftrainer(nn.Module):
     def __init__(self,arch,data,centers,sigma,targets,bofnumber, activation):
         super().__init__()
@@ -44,8 +55,9 @@ class Boftrainer(nn.Module):
             self.activations = lambda r : torch.sin(r) ** 2
         if activation == 'tanh':
             self.activations = lambda r : torch.tanh(r)
+        if self.activation == 'photosig':
+            self.activations = lambda r : photonic_sigmoid(r)
 
-    #NOTE: So far training is only compatible with arch2 
     def forward(self,x):
         if self.bofnumber >= 1:
             x = self.activations(self.conv1(x.to(device))).to(device)

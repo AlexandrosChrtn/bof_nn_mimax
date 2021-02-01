@@ -129,7 +129,7 @@ class ConvBOFVGG(nn.Module):
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
 
-    def prepare_centers(self, k_means_iterations = 90, train_iterations = 25, n_initializations = 1):
+    def prepare_centers(self, k_means_iterations = 500, train_iterations = 300, n_initializations = 1):
         '''
         This function calculates the centers of each bof layer
         Initializes codebook with K-means after passing each instance of center_initializer through the network
