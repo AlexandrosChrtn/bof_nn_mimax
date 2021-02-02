@@ -55,7 +55,7 @@ class Boftrainer(nn.Module):
             self.activations = lambda r : torch.sin(r) ** 2
         if activation == 'tanh':
             self.activations = lambda r : torch.tanh(r)
-        if self.activation == 'photosig':
+        if activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
 
     def forward(self,x):

@@ -100,7 +100,7 @@ teacher.to(device)
 #If teacher is trained and we are only interested in loading it
 #==================================#
 model_dict = teacher.state_dict()
-pretrained = torch.load('/content/drive/MyDrive/experiments_information_theory/Plots/experiment_325/model.pt')
+pretrained = torch.load('/content/drive/MyDrive/experiments_information_theory/Plots/experiment_307/model.pt')
 # 1. filter out unnecessary keys
 pretrained_dict = {k: v for k, v in pretrained.items() if k in model_dict}
 # 2. overwrite entries in the existing state dict
@@ -135,7 +135,7 @@ criterion = nn.CrossEntropyLoss()
 #Train_original is used if image augmentation takes place
 utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
-args.path, args.exp_number, 550, 360)
+args.path, args.exp_number, 550, 320)
 
 #Saves the model in a model.pt file after the end of args.epochs epochs
 torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_after_transfer.pt")

@@ -108,13 +108,14 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
 
             if epoch < epoch_to_init - 1:
-                loss = criterion(out, labels) 
+                loss = criterion(out, labels)
+                loss.backward()
             else:
                 loss1 = criterion(out, labels)
-                loss2 = mi_between_quantized(hist3, hist3_teacher)
-                loss = loss1 - 1.25 * loss2
+                loss2 = mi_between_quantized(hist1, hist1_teacher)
+                loss = loss1 - 0.8 * loss2
+                loss.backward(retain_graph=True)
             
-            loss.backward(retain_graph=True)#may need retain_graph = True
             optimizer.step()
 
             # Adds calculated loss to total loss and the maximum output for the prediction
