@@ -42,6 +42,7 @@ argparser.add_argument('--path', type=str,   default="results", help='Path to sa
 argparser.add_argument('--exp_number', type=int,   default=0, help='Experiment number if multiple tries are to take place. Add one each time to create a different directory')
 argparser.add_argument('--epochs_init', type=int,   default=12, help='Epochs before training bof centers')
 argparser.add_argument('--augmentation', type=bool,   default=False, help='Apply data augmentation to cifar')
+argparser.add_argument('--histogram_to_transfer', type=int,   default=1, help='Choose a histogram level to transform knowledge. Choose 0 if gradual.')
 
 args = argparser.parse_args()
 
@@ -132,13 +133,36 @@ start = time.time()
 #Classification loss i.e. cross entropy loss
 criterion = nn.CrossEntropyLoss()
 
-#Train_original is used if image augmentation takes place
-utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list = utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
-args.path, args.exp_number, 550, 320)
+args.path, args.exp_number, 550, 320, args.histogram_to_transfer)
 
 #Saves the model in a model.pt file after the end of args.epochs epochs
 torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_after_transfer.pt")
 
 end = time.time()
 print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.close()

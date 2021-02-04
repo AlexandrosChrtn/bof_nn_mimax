@@ -43,7 +43,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
             optimizer.step()
 
             # Adds calculated loss to total loss and the maximum output for the prediction
-            train_loss += loss.data.item()
+            train_loss += loss.data.item() / labels.size(0)
             _, predicted = torch.max(out.data, 1)
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
@@ -68,7 +68,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
 
 
-def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter):
+def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -100,20 +100,32 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         for (instances, labels) in train_loader:
             instances, labels = instances.to(device), labels.to(device)
 
-            #may need the following line
-            #labels = labels.type(torch.LongTensor)
-
             optimizer.zero_grad()
             out, hist1, hist2, hist3, hist4 = student(instances)
             out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
+
+            #Ugly code but whatever works for now
+            if histogram_to_transfer == 0:
+                if epoch < epoch_to_init + 20:
+                    vessel, vessel_teacher = hist1, hist1_teacher
+                if epoch >= epoch_to_init + 20 and epoch < epoch_to_init + 40:
+                    vessel, vessel_teacher = hist2, hist2_teacher
+                if epoch >= epoch_to_init + 40:
+                    vessel, vessel_teacher = hist3, hist3_teacher
+            if histogram_to_transfer == 1:
+                vessel, vessel_teacher = hist1, hist1_teacher
+            if histogram_to_transfer == 2:
+                vessel, vessel_teacher = hist2, hist2_teacher
+            if histogram_to_transfer == 3:
+                vessel, vessel_teacher = hist3, hist3_teacher
 
             if epoch < epoch_to_init - 1:
                 loss = criterion(out, labels)
                 loss.backward()
             else:
                 loss1 = criterion(out, labels)
-                loss2 = mi_between_quantized(hist1, hist1_teacher)
-                loss = loss1 - 0.8 * loss2
+                loss2 = mi_between_quantized(vessel, vessel_teacher)
+                loss = loss1 - 0.5 * loss2
                 loss.backward(retain_graph=True)
             
             optimizer.step()
@@ -151,3 +163,4 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
     plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs)
+    return train_accuracy, test_accuracy
