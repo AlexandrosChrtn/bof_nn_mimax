@@ -179,8 +179,11 @@ class ConvBOFVGG(nn.Module):
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
         self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_initializer, self.center_initializer_y)
+        print('after', (self.codebook1[4]))
         self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_initializer, self.center_initializer_y)
+        print('after', (self.codebook2[4]))
         self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_initializer, self.center_initializer_y)
+        print('after', (self.codebook3[4]))
         self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_initializer, self.center_initializer_y)
 
         #If we want to train centers for student
@@ -198,15 +201,18 @@ class ConvBOFVGG(nn.Module):
         returns trained codebook and trained sigma
         iterations: How many times should data (center_initializer) go through the network
         '''
+        print('before', (codebook[4]))
         model = bof_trainer.Boftrainer(self.arch, data, codebook, sigma, data_y, bof_number, self.activation).to(device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(),lr = 0.005)
+        optimizer = torch.optim.SGD(model.parameters(),lr = 0.05)
         for _ in range(iterations):
             out = model(data)
             loss = criterion(out, data_y)
+            print(loss)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+
 
         return model.codebook.to(device), model.sigma.to(device)
 

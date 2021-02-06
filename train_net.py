@@ -35,6 +35,8 @@ argparser.add_argument('--optimizer',  choices = ['sgd','adam','rmsprop','adadel
 argparser.add_argument('--dataset', type=str,   default='cifar10', help='Dataset. Currently supports cifar10 and mnist')
 argparser.add_argument('--batch_size', type=int,   default=250, help='Batch size')
 argparser.add_argument('--epochs', type=int,   default=60, help='Epochs')
+argparser.add_argument('--k_means_iter', type=int,   default=500, help='K-means iterations')
+argparser.add_argument('--codebook_train_epochs', type=int,   default=250, help='Iterations over initializing batch sample for codebook training')
 argparser.add_argument('--arch', type=int,   default=2, help='Choose an architecture')
 argparser.add_argument('--eval_freq', type=int,   default=5, help='Calculate accuracy for train and test after __ epochs')
 argparser.add_argument('--bof_centers', type=int,   default=20, help='Number of trainable centers to be used by the BOF layer')
@@ -43,6 +45,7 @@ argparser.add_argument('--exp_number', type=int,   default=0, help='Experiment n
 argparser.add_argument('--epochs_init', type=int,   default=12, help='Epochs before training bof centers')
 argparser.add_argument('--augmentation', type=bool,   default=False, help='Apply data augmentation to cifar')
 argparser.add_argument('--histogram_to_transfer', type=int,   default=1, help='Choose a histogram level to transform knowledge. Choose 0 if gradual.')
+argparser.add_argument('--load_model_path', type=str,   default="model.pt", help='Path leading to pretrained model.')
 
 args = argparser.parse_args()
 
@@ -101,7 +104,7 @@ teacher.to(device)
 #If teacher is trained and we are only interested in loading it
 #==================================#
 model_dict = teacher.state_dict()
-pretrained = torch.load('/content/drive/MyDrive/experiments_information_theory/Plots/experiment_325/model.pt')
+pretrained = torch.load(args.load_model_path, map_location= device)
 # 1. filter out unnecessary keys
 pretrained_dict = {k: v for k, v in pretrained.items() if k in model_dict}
 # 2. overwrite entries in the existing state dict
@@ -136,7 +139,7 @@ criterion = nn.CrossEntropyLoss()
 #Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
 train_acc_list, test_acc_list = utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
-args.path, args.exp_number, 500, 220, args.histogram_to_transfer)
+args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer)
 
 #Saves the model in a model.pt file after the end of args.epochs epochs
 torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_after_transfer.pt")
