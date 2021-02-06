@@ -78,6 +78,7 @@ class Boftrainer(nn.Module):
 
         #NOTE: x is detached here
         x = torch.exp(-(x.detach().to(device) - self.codebook.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma.unsqueeze(0).unsqueeze(2).to(device))
+        print('Mean exp ', torch.mean(x))
         x = F.normalize(x, 1, dim = 1).to(device)
         x = torch.mean(x, dim = 2)
 

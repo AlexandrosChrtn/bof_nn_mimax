@@ -200,7 +200,7 @@ class ConvBOFVGG(nn.Module):
         '''
         model = bof_trainer.Boftrainer(self.arch, data, codebook, sigma, data_y, bof_number, self.activation).to(device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(),lr = 0.015)
+        optimizer = torch.optim.SGD(model.parameters(),lr = 0.005)
         for _ in range(iterations):
             out = model(data)
             loss = criterion(out, data_y)
@@ -320,6 +320,4 @@ class ConvBOFVGG(nn.Module):
             histogram3 = torch.tensor(0)
             histogram4 = torch.tensor(0)
 
-        #if self.quant_input:
-        #    return x.cpu(),histogram0.cpu(), histogram1.cpu(), histogram2.cpu(), histogram3.cpu(), histogram4.cpu()
         return x, histogram1, histogram2, histogram3, histogram4

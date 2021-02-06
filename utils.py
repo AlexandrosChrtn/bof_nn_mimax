@@ -106,11 +106,11 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
 
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
-                if epoch < epoch_to_init + 20:
+                if epoch < epoch_to_init + 30:
                     vessel, vessel_teacher = hist1, hist1_teacher
-                if epoch >= epoch_to_init + 20 and epoch < epoch_to_init + 40:
+                if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 60:
                     vessel, vessel_teacher = hist2, hist2_teacher
-                if epoch >= epoch_to_init + 40:
+                if epoch >= epoch_to_init + 60:
                     vessel, vessel_teacher = hist3, hist3_teacher
             if histogram_to_transfer == 1:
                 vessel, vessel_teacher = hist1, hist1_teacher
@@ -125,7 +125,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
-                loss = loss1 - 0.5 * loss2
+                loss = loss1 - 0.25 * loss2
                 loss.backward(retain_graph=True)
             
             optimizer.step()
