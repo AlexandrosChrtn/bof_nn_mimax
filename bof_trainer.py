@@ -43,10 +43,8 @@ class Boftrainer(nn.Module):
             self.conv3 = nn.Conv2d(9, 10, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
             self.conv4 = nn.Conv2d(10, 9, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
         
-        self.l1 = nn.Linear(self.clusternumber, 64, bias = True).to(device)
-        self.l2 = nn.Linear(64, 64, bias = True).to(device)
-        self.l3 = nn.Linear(64, 32, bias = True).to(device)
-        self.l4 = nn.Linear(32, 10, bias = True).to(device)
+        self.l1 = nn.Linear(self.clusternumber, 20, bias = True).to(device)
+        self.l2 = nn.Linear(20, 10, bias = True).to(device)
         self.sigma = nn.Parameter(sigma, requires_grad=True)
         self.codebook = nn.Parameter(centers, requires_grad=True)
         if activation == 'relu':
@@ -76,14 +74,11 @@ class Boftrainer(nn.Module):
         x = x.transpose(1,2)
         x = x.unsqueeze(1)
 
-        #NOTE: x is detached here //detach was deprecated 07-02-21 as it did not seem to slow / speed up codebook training
+        #NOTE: x is detached here //detach was deprecated 07-02-21 as it did not seem to slow down / speed up codebook training
         x = torch.exp(-(x.to(device) - self.codebook.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma.unsqueeze(0).unsqueeze(2).to(device))
         x = F.normalize(x, 1, dim = 1).to(device)
         x = torch.mean(x, dim = 2)
 
         x = torch.relu(self.l1(x))
-        x = torch.relu(self.l2(x))
-        x = torch.relu(self.l3(x))
-        x = (self.l4(x))
-
+        x = (self.l2(x))
         return x

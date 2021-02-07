@@ -36,7 +36,7 @@ argparser.add_argument('--dataset', type=str,   default='cifar10', help='Dataset
 argparser.add_argument('--batch_size', type=int,   default=250, help='Batch size')
 argparser.add_argument('--epochs', type=int,   default=60, help='Epochs')
 argparser.add_argument('--k_means_iter', type=int,   default=500, help='K-means iterations')
-argparser.add_argument('--codebook_train_epochs', type=int,   default=250, help='Iterations over initializing batch sample for codebook training')
+argparser.add_argument('--codebook_train_epochs', type=int,   default=800, help='Iterations over initializing batch sample for codebook training')
 argparser.add_argument('--arch', type=int,   default=2, help='Choose an architecture')
 argparser.add_argument('--eval_freq', type=int,   default=5, help='Calculate accuracy for train and test after __ epochs')
 argparser.add_argument('--bof_centers', type=int,   default=20, help='Number of trainable centers to be used by the BOF layer')

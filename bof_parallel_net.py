@@ -106,11 +106,11 @@ class ConvBOFVGG(nn.Module):
             self.nlib2 = nn.Linear(12, 10).to(device)
         
         
-        self.sigma0 = (torch.ones(size = (1, self.clusternumber)) * 1.2).to(device)
-        self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 1.2).to(device)
-        self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 1.2).to(device)
-        self.sigma3 = (torch.ones(size = (1, self.clusternumber)) * 1.2).to(device)
-        self.sigma4 = (torch.ones(size = (1, self.clusternumber)) * 1.2).to(device)
+        self.sigma0 = (torch.ones(size = (1, self.clusternumber)) * 0.90).to(device)
+        self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 0.75).to(device)
+        self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 0.65).to(device)
+        self.sigma3 = (torch.ones(size = (1, self.clusternumber)) * 0.50).to(device)
+        self.sigma4 = (torch.ones(size = (1, self.clusternumber)) * 0.40).to(device)
         self.sigma = torch.stack((self.sigma0, self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1)
         self.sigma.requires_grad=False
         #IF During kt we want to train sigma along with centers then we may set to true
@@ -208,7 +208,7 @@ class ConvBOFVGG(nn.Module):
         for _ in range(iterations):
             out = model(data)
             loss = criterion(out, data_y)
-            print(loss)
+            #print(loss)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
