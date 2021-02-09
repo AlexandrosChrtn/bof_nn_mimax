@@ -42,13 +42,15 @@ def photonic_sigmoid(x, cutoff=2):
 
 
 class ConvBOFVGG(nn.Module):
-    def __init__(self, center_initial, center_initial_y, clusters, arch, quant_input, end_with_linear, activation, path, exp_number):
+    def __init__(self, center_initial, center_initial_y, center_train, center_train_y,  clusters, arch, quant_input, end_with_linear, activation, path, exp_number):
         super().__init__()
         self.arch = arch
         self.path = path
         self.experiment_number = exp_number
         self.center_initializer = center_initial.to(device)
         self.center_initializer_y = center_initial_y.to(device)
+        self.center_train = center_train
+        self.center_train_y = center_train_y
         self.imgsize = self.center_initializer.size(2)
         self.channels = self.center_initializer.size(1)
 
@@ -178,13 +180,13 @@ class ConvBOFVGG(nn.Module):
 
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
-        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_initializer, self.center_initializer_y)
+        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_train, self.center_train_y)
         print('after', (self.codebook1[4]))
-        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_initializer, self.center_initializer_y)
+        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_train, self.center_train_y)
         print('after', (self.codebook2[4]))
-        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_initializer, self.center_initializer_y)
+        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_train, self.center_train_y)
         print('after', (self.codebook3[4]))
-        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_initializer, self.center_initializer_y)
+        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_train, self.center_train_y)
 
         #If we want to train centers for student
         if self.student_network:

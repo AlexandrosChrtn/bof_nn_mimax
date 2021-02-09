@@ -36,7 +36,7 @@ argparser.add_argument('--dataset', type=str,   default='cifar10', help='Dataset
 argparser.add_argument('--batch_size', type=int,   default=250, help='Batch size')
 argparser.add_argument('--epochs', type=int,   default=60, help='Epochs')
 argparser.add_argument('--k_means_iter', type=int,   default=500, help='K-means iterations')
-argparser.add_argument('--codebook_train_epochs', type=int,   default=800, help='Iterations over initializing batch sample for codebook training')
+argparser.add_argument('--codebook_train_epochs', type=int,   default=50, help='Iterations over initializing batch sample for codebook training')
 argparser.add_argument('--arch', type=int,   default=2, help='Choose an architecture')
 argparser.add_argument('--eval_freq', type=int,   default=5, help='Calculate accuracy for train and test after __ epochs')
 argparser.add_argument('--bof_centers', type=int,   default=20, help='Number of trainable centers to be used by the BOF layer')
@@ -60,6 +60,14 @@ for data,lab in train_original:
   bof_targs = lab
   break
 
+counter = 0
+for data,lab in train_original:
+  cents_train = data
+  cents_train_y = lab
+  counter = counter + 1
+  if counter > 20:
+    break
+
 os.system("mkdir " + args.path)
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number))
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_histograms/')
@@ -69,8 +77,8 @@ os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_h
 #Code below is used to train a teacher - can be skipped if we assume teacher has been trained and resides at path given in load
 #=====================================#
 #Initialize the network. This is required irregardless of whether or not we train
-teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),
- clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = cents_train,
+ center_train_y = cents_train_y, clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'relu', path = args.path, exp_number = args.exp_number)
 teacher.to(device)
 
@@ -114,8 +122,8 @@ teacher.load_state_dict(model_dict)
 #==================================#
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
-student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),
- clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = cents_train,
+ center_train_y = cents_train_y, clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = args.exp_number)
 student.to(device)
 student.student_network = True

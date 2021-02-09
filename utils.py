@@ -125,7 +125,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
-                loss = loss1 - 2.5 * loss2
+                loss = loss1 - 8.5 * loss2
                 loss.backward(retain_graph=True)
             
             optimizer.step()
