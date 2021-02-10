@@ -206,7 +206,7 @@ class ConvBOFVGG(nn.Module):
         print('before', (codebook[4]))
         model = bof_trainer.Boftrainer(self.arch, codebook, sigma, bof_number, self.activation).to(device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(),lr = 0.008)
+        optimizer = torch.optim.SGD(model.parameters(),lr = 0.08)
         for epoch in range(iterations):
             for data, labels in train_loader:
                 data = data.to(device)
