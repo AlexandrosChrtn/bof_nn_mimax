@@ -14,14 +14,14 @@ def photonic_sigmoid(x, cutoff=2):
     y = A2 + (A1 - A2) / (1 + torch.exp(x / d))
     return y
 
-
+#TODO: had to manually add channels = 3 because of loader changes. Fix it
 class Boftrainer(nn.Module):
-    def __init__(self,arch,data,centers,sigma,targets,bofnumber, activation):
+    def __init__(self,arch,centers,sigma,bofnumber, activation):
         super().__init__()
         self.arch = arch
         self.clusternumber = centers.size(0)
         self.bofnumber = bofnumber
-        channels = data.size(1)
+        channels = 3
         if arch == 1:
             self.conv1 = nn.Conv2d(channels, 8, kernel_size = 3, stride = 2).to(device)
             self.conv2 = nn.Conv2d(8, 8, kernel_size = 3, stride = 1).to(device)

@@ -50,7 +50,7 @@ argparser.add_argument('--load_model_path', type=str,   default="model.pt", help
 args = argparser.parse_args()
 
 if args.dataset == 'cifar10':
-    train_loader, test_loader, train_original = data_python.cifar10_loader(data_path='data', batch_size=args.batch_size, augment_train= args.augmentation)
+    train_loader, test_loader, train_original, train_subset_loader = data_python.cifar10_loader(data_path='data', batch_size=args.batch_size, augment_train= args.augmentation)
 if args.dataset == 'mnist':
     train_loader, test_loader, train_original = data_python.mnist_loader(data_path='data', batch_size=args.batch_size)
 
@@ -77,7 +77,7 @@ os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_h
 #Code below is used to train a teacher - can be skipped if we assume teacher has been trained and resides at path given in load
 #=====================================#
 #Initialize the network. This is required irregardless of whether or not we train
-teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = cents_train,
+teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = train_subset_loader,
  center_train_y = cents_train_y, clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'relu', path = args.path, exp_number = args.exp_number)
 teacher.to(device)
@@ -122,8 +122,8 @@ teacher.load_state_dict(model_dict)
 #==================================#
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
-student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = cents_train,
- center_train_y = cents_train_y, clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ center_train_y = cents_train_y.to(device), clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = args.exp_number)
 student.to(device)
 student.student_network = True

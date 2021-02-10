@@ -1,6 +1,7 @@
 import torch
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
+import torch.utils.data.dataloader
 
 class AddGaussianNoise(object):
     '''
@@ -49,14 +50,19 @@ def cifar10_loader(data_path='../data', batch_size=128, augment_train = False):
     train_data_original = dset.CIFAR10(data_path, train=True, transform=test_transform, download=True)
     test_data = dset.CIFAR10(data_path, train=False, transform=test_transform, download=True)
 
+    odds = list(range(1, len(train_data), 12))
+    train_data_sample = torch.utils.data.Subset(train_data, odds)
+
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2,
                                                pin_memory=True)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=2,
                                               pin_memory=True)
+    train_subset_loader = torch.utils.data.DataLoader(train_data_sample, batch_size=batch_size, shuffle=True, num_workers=2,
+                                               pin_memory=True)
     train_loader_original = torch.utils.data.DataLoader(train_data_original, batch_size=batch_size,
                                                         shuffle=True, num_workers=2, pin_memory=True)
 
-    return train_loader, test_loader, train_loader_original
+    return train_loader, test_loader, train_loader_original, train_subset_loader
 
 def mnist_loader(data_path='../data', batch_size=128):
     """

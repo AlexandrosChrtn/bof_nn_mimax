@@ -131,7 +131,7 @@ class ConvBOFVGG(nn.Module):
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
 
-    def prepare_centers(self, k_means_iterations = 500, train_iterations = 300, n_initializations = 1):
+    def prepare_centers(self, k_means_iterations = 500, train_iterations = 30, n_initializations = 1):
         '''
         This function calculates the centers of each bof layer
         Initializes codebook with K-means after passing each instance of center_initializer through the network
@@ -180,13 +180,13 @@ class ConvBOFVGG(nn.Module):
 
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
-        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_train, self.center_train_y)
+        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_train)
         print('after', (self.codebook1[4]))
-        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_train, self.center_train_y)
+        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_train)
         print('after', (self.codebook2[4]))
-        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_train, self.center_train_y)
+        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_train)
         print('after', (self.codebook3[4]))
-        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_train, self.center_train_y)
+        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_train)
 
         #If we want to train centers for student
         if self.student_network:
@@ -197,24 +197,27 @@ class ConvBOFVGG(nn.Module):
 
 
         #IF we want a trainable codebook during kt then we may set it as nn.Parameter here
-    def train_bof_centers_with_ce(self, codebook, sigma, bof_number, iterations, data, data_y):
+    def train_bof_centers_with_ce(self, codebook, sigma, bof_number, iterations, train_loader):
         '''
         This function is used by prepare_centers to train the networks
         returns trained codebook and trained sigma
         iterations: How many times should data (center_initializer) go through the network
         '''
         print('before', (codebook[4]))
-        model = bof_trainer.Boftrainer(self.arch, data, codebook, sigma, data_y, bof_number, self.activation).to(device)
+        model = bof_trainer.Boftrainer(self.arch, codebook, sigma, bof_number, self.activation).to(device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(),lr = 0.05)
-        for _ in range(iterations):
-            out = model(data)
-            loss = criterion(out, data_y)
-            #print(loss)
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-
+        optimizer = torch.optim.SGD(model.parameters(),lr = 0.008)
+        for epoch in range(iterations):
+            for data, labels in train_loader:
+                data = data.to(device)
+                labels = labels.to(device)
+                out = model(data)
+                loss = criterion(out, labels)
+                #print(loss)
+                loss.backward()
+                #print(model.codebook.grad)
+                optimizer.step()
+                optimizer.zero_grad()
 
         return model.codebook.to(device), model.sigma.to(device)
 
