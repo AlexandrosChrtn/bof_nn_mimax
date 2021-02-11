@@ -6,6 +6,13 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 else torch.device('cpu'))
 from mi_estimation import mi_between_quantized
 
+from sklearn.neighbors import KNeighborsClassifier
+
+def knn_baseline_check(model, knn_after_fit, test_loader):
+    return evaluate_model.knn_baseline_evaluation(model, )
+    
+
+
 
 def train_bof_model(net, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter):
     """
@@ -36,7 +43,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
             #labels = labels.type(torch.LongTensor)
 
             optimizer.zero_grad()
-            out, hist1, hist2, hist3, hist4 = net(instances)
+            out, hist1, hist2, hist3, hist4, x5 = net(instances) #added x5 instead of x to run baseline knn test
 
             loss = criterion(out, labels)
             loss.backward()
@@ -68,7 +75,8 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
 
 
-def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer):
+def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
+ eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = True):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -86,6 +94,9 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
     test_accuracy = []
     ce_loss = []
     mi_loss = []
+    if check_baseline_knn_argument:
+        knn_base = KNeighborsClassifier(n_neighbors = 1)
+        accuracy_for_knn = []
     for param in teacher.parameters():
         param.requires_grad = False
     for epoch in range(epochs):
@@ -101,8 +112,8 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             instances, labels = instances.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            out, hist1, hist2, hist3, hist4 = student(instances)
-            out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
+            out, hist1, hist2, hist3, hist4, x5 = student(instances)#added x5 instead of x to run baseline knn test
+            out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, x5teacher = teacher(instances)
 
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
@@ -118,6 +129,8 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
                 vessel, vessel_teacher = hist2, hist2_teacher
             if histogram_to_transfer == 3:
                 vessel, vessel_teacher = hist3, hist3_teacher
+            if histogram_to_transfer == 4:
+                vessel, vessel_teacher = hist4, hist4_teacher
 
             if epoch < epoch_to_init - 1 or epoch > 135:
                 loss = criterion(out, labels)
@@ -148,13 +161,21 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             #    hist3 = torch.mean(hist3, dim = 1)
             #    hist4 = torch.mean(hist4, dim = 1)
             #    mkdir_and_vis_hist(hist1.cpu(), hist2.cpu(), hist3.cpu(), hist4.cpu(),labels.cpu(), path, exp_number,epoch)
+            knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
+
 
         ce_loss.append(train_loss)
+        if check_baseline_knn_argument:
+            accuracy_for_knn.append(evaluate_model.knn_baseline_evaluation(student, knn_base, test_loader))
+            print('knn so far ', accuracy_for_knn)
+
         
         if epoch >= epoch_to_init - 1:
             mi_loss.append(calculated_mi)
             #mi_loss.append(loss2.data.item())
         #code below is repsonsible for evaluating every freq eval epochs
+        if epoch == 75:
+            torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
             evaluate_model.evaluate_model_train_test(student, train_loader_original, test_loader, train_accuracy, test_accuracy)
        

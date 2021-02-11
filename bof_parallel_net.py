@@ -131,7 +131,7 @@ class ConvBOFVGG(nn.Module):
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
 
-    def prepare_centers(self, k_means_iterations = 500, train_iterations = 30, n_initializations = 1):
+    def prepare_centers(self, k_means_iterations = 500, train_iterations = 130, n_initializations = 1):
         '''
         This function calculates the centers of each bof layer
         Initializes codebook with K-means after passing each instance of center_initializer through the network
@@ -224,9 +224,6 @@ class ConvBOFVGG(nn.Module):
 
     def forward(self,x):
 
-        #if self.quant_input and self.start_bof_training:
-        #    histogram0 = calculate_bof_histogram(x, self.codebook0.to(device), 'rbf', self.sigma, number = 0)
-
         x2 = self.activations(self.conv1(x.to(device)).to(device))
 
         if self.start_bof_training:
@@ -288,9 +285,9 @@ class ConvBOFVGG(nn.Module):
             #histogram_3 = torch.tensor(calculate_bof_histogram(x4_for_hist3, self.codebook3.to(device), 'rbf', self.sigma, number = 3))
 
         if self.arch1 == False:
-            x = self.activations(self.conv4(x4.to(device)))
+            x5 = self.activations(self.conv4(x4.to(device)))
             if self.start_bof_training:
-                histogram4 = torch.flatten(x, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
+                histogram4 = torch.flatten(x5, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram4 = histogram4.transpose(1,2)
                 histogram4 = histogram4.unsqueeze(1)
                 histogram4 = torch.exp(-(histogram4.to(device) - self.codebook4.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[4].unsqueeze(0).unsqueeze(2).to(device))
@@ -301,7 +298,7 @@ class ConvBOFVGG(nn.Module):
                 #histogram4 = torch.mean(histogram4, dim = 2)
                 #x5_for_hist4 = x.clone()
                 #histogram_4 = calculate_bof_histogram(x5_for_hist4, self.codebook4.to(device), 'rbf', self.sigma, number = 4)
-            x = self.pool2_2(x)
+            x = self.pool2_2(x5)
         else:
             x = self.activations(self.conv4(x4.to(device)))
             if self.start_bof_training:
@@ -317,18 +314,13 @@ class ConvBOFVGG(nn.Module):
                 #x5_for_hist4 = x.clone()
                 #histogram_4 = calculate_bof_histogram(x5_for_hist4, self.codebook4.to(device), 'rbf', self.sigma, number = 4)
         
-        if self.end_with_linear:
-            x = self.nlib0(torch.flatten(x, start_dim = 1, end_dim = 3))#works only when arch1 = False -- change number of input neurons to work for arch1 = True
-            x = self.activations(self.nlib1(x))
-            x = self.nlib2(x)
-        else:
-            x = self.conv5(x.to(device))
-            x= torch.flatten(x.to(device).to(device), start_dim=1, end_dim = 3)
+
+        x = self.conv5(x.to(device))
+        x= torch.flatten(x.to(device).to(device), start_dim=1, end_dim = 3)
         if not self.start_bof_training:
-            #histogram0 = torch.tensor(0)
             histogram1 = torch.tensor(0)
             histogram2 = torch.tensor(0)
             histogram3 = torch.tensor(0)
             histogram4 = torch.tensor(0)
 
-        return x, histogram1, histogram2, histogram3, histogram4
+        return x, histogram1, histogram2, histogram3, histogram4, x5#added x5 instead of x to run baseline knn test
