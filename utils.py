@@ -161,6 +161,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             #    hist3 = torch.mean(hist3, dim = 1)
             #    hist4 = torch.mean(hist4, dim = 1)
             #    mkdir_and_vis_hist(hist1.cpu(), hist2.cpu(), hist3.cpu(), hist4.cpu(),labels.cpu(), path, exp_number,epoch)
+            x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
             knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
 
 
