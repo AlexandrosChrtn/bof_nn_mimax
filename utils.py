@@ -173,6 +173,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         
         if epoch >= epoch_to_init - 1:
             mi_loss.append(calculated_mi)
+        print('MI is ', calculated_mi)
             #mi_loss.append(loss2.data.item())
         #code below is repsonsible for evaluating every freq eval epochs
         if epoch == 75:
