@@ -54,15 +54,6 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
             _, predicted = torch.max(out.data, 1)
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
-            
-            #Code below is used to plot the extracted histograms every 15 epochs to ensure everything works
-            #if epoch % 15 == 0 and epoch > 1:
-            #    hist0 = torch.mean(hist0, dim = 1)
-            #    hist1 = torch.mean(hist1, dim = 1)
-            #    hist2 = torch.mean(hist2, dim = 1)
-            #    hist3 = torch.mean(hist3, dim = 1)
-            #    hist4 = torch.mean(hist4, dim = 1)
-            #    mkdir_and_vis_hist(hist0.cpu(), hist1.cpu(), hist2.cpu(), hist3.cpu(), hist4.cpu(),labels.cpu(), path, exp_number,epoch)
         
         ce_loss.append(train_loss / total)
         #code below is repsonsible for evaluating every freq eval epochs
@@ -76,7 +67,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
 
 
 def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
- eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = True):
+ eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = False):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -95,7 +86,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
     ce_loss = []
     mi_loss = []
     if check_baseline_knn_argument:
-        knn_base = KNeighborsClassifier(n_neighbors = 1)
+        knn_base = KNeighborsClassifier(n_neighbors = 3)
         accuracy_for_knn = []
     for param in teacher.parameters():
         param.requires_grad = False
@@ -117,11 +108,11 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
 
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
-                if epoch < epoch_to_init + 20:
+                if epoch < epoch_to_init + 15:
                     vessel, vessel_teacher = hist1, hist1_teacher
-                if epoch >= epoch_to_init + 20 and epoch < epoch_to_init + 40:
+                if epoch >= epoch_to_init + 15 and epoch < epoch_to_init + 30:
                     vessel, vessel_teacher = hist2, hist2_teacher
-                if epoch >= epoch_to_init + 40:
+                if epoch >= epoch_to_init + 30:
                     vessel, vessel_teacher = hist3, hist3_teacher
             if histogram_to_transfer == 1:
                 vessel, vessel_teacher = hist1, hist1_teacher
@@ -132,13 +123,13 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             if histogram_to_transfer == 4:
                 vessel, vessel_teacher = hist4, hist4_teacher
 
-            if epoch < epoch_to_init - 1 or epoch > 135:
+            if epoch < epoch_to_init - 1 or epoch > 60:
                 loss = criterion(out, labels)
                 loss.backward()
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
-                loss = loss1 - 8.5 * loss2
+                loss = loss1 - 2 * loss2
                 loss.backward(retain_graph=True)
             
             optimizer.step()
@@ -154,13 +145,6 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
 
-            #Code below is used to inspect odd mi values 
-            #if epoch == 18 and epoch > 1:
-            #    hist1 = torch.mean(hist1, dim = 1)
-            #    hist2 = torch.mean(hist2, dim = 1)
-            #    hist3 = torch.mean(hist3, dim = 1)
-            #    hist4 = torch.mean(hist4, dim = 1)
-            #    mkdir_and_vis_hist(hist1.cpu(), hist2.cpu(), hist3.cpu(), hist4.cpu(),labels.cpu(), path, exp_number,epoch)
             x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
             knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
 
@@ -168,12 +152,13 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         ce_loss.append(train_loss)
         if check_baseline_knn_argument:
             accuracy_for_knn.append(evaluate_model.knn_baseline_evaluation(student, knn_base, test_loader))
+            print('MI is ', calculated_mi)
             print('knn so far ', accuracy_for_knn)
+            knn_base = KNeighborsClassifier(n_neighbors = 3)
 
         
         if epoch >= epoch_to_init - 1:
             mi_loss.append(calculated_mi)
-        print('MI is ', calculated_mi)
             #mi_loss.append(loss2.data.item())
         #code below is repsonsible for evaluating every freq eval epochs
         if epoch == 75:

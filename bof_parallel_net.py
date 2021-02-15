@@ -101,12 +101,6 @@ class ConvBOFVGG(nn.Module):
             self.arch1 = True
         else:
             self.arch1 = False
-
-        if end_with_linear:#If we want to replace the conv layer after 4 convs with a classifier
-            self.nlib0 = nn.Linear(1024, 5).to(device)
-            self.nlib1 = nn.Linear(5, 12).to(device)
-            self.nlib2 = nn.Linear(12, 10).to(device)
-        
         
         self.sigma0 = (torch.ones(size = (1, self.clusternumber)) * 0.90).to(device)
         self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 0.75).to(device)
@@ -142,13 +136,6 @@ class ConvBOFVGG(nn.Module):
         '''
         print('Initializing centers ...')
         KMC = KMeans(n_clusters=self.clusternumber, max_iter = k_means_iterations, n_init = n_initializations)
-        #if self.quant_input:
-        #    original = self.center_initializer.to(device).detach()
-        #    original = torch.flatten(original, start_dim = 2, end_dim = 3)
-        #    original = torch.reshape(original.transpose(1,2), (self.center_initializer.size(0), self.imgsize**2,self.channels))
-        #    clusters = np.array((torch.reshape(original, (self.center_initializer.size(0)*self.imgsize**2, self.channels)).cpu()))
-        #    clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
-        #    self.codebook0 = clusters
 
         aa1init = self.activations(self.conv1(self.center_initializer.to(device)).to(device)).detach()
         aa1 = torch.flatten(aa1init, start_dim = 2, end_dim=3)
@@ -206,7 +193,7 @@ class ConvBOFVGG(nn.Module):
         print('before', (codebook[4]))
         model = bof_trainer.Boftrainer(self.arch, codebook, sigma, bof_number, self.activation).to(device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(),lr = 0.08)
+        optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
         for epoch in range(iterations):
             for data, labels in train_loader:
                 data = data.to(device)
