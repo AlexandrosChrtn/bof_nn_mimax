@@ -145,8 +145,9 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
 
-            x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
-            knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
+            if check_baseline_knn_argument:
+                x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
+                knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
 
 
         ce_loss.append(train_loss)
@@ -161,8 +162,8 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             mi_loss.append(calculated_mi)
             #mi_loss.append(loss2.data.item())
         #code below is repsonsible for evaluating every freq eval epochs
-        if epoch == 75:
-            torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_ep75.pt")
+        #if epoch == 75:
+        #    torch.save(student.state_dict(), path + "/experiment_" + str(exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
             evaluate_model.evaluate_model_train_test(student, train_loader_original, test_loader, train_accuracy, test_accuracy)
        
