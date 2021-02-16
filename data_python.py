@@ -50,7 +50,7 @@ def cifar10_loader(data_path='../data', batch_size=128, augment_train = False):
     train_data_original = dset.CIFAR10(data_path, train=True, transform=test_transform, download=True)
     test_data = dset.CIFAR10(data_path, train=False, transform=test_transform, download=True)
 
-    odds = list(range(1, len(train_data), 16))
+    odds = list(range(1, len(train_data), 8))
     train_data_sample = torch.utils.data.Subset(train_data, odds)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2,
