@@ -8,12 +8,6 @@ from mi_estimation import mi_between_quantized
 
 from sklearn.neighbors import KNeighborsClassifier
 
-def knn_baseline_check(model, knn_after_fit, test_loader):
-    return evaluate_model.knn_baseline_evaluation(model, )
-    
-
-
-
 def train_bof_model(net, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter):
     """
     Trains a classification model
@@ -103,25 +97,35 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             instances, labels = instances.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            out, hist1, hist2, hist3, hist4, x5 = student(instances)#added x5 instead of x to run baseline knn test
+            out, hist1, hist2, hist3, hist4, x5 = student(instances)#replaced hidden rep with histogram after pooling
             out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, x5teacher = teacher(instances)
 
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
                 if epoch < epoch_to_init + 15:
                     vessel, vessel_teacher = hist1, hist1_teacher
+                    coef = 0.05
                 if epoch >= epoch_to_init + 15 and epoch < epoch_to_init + 30:
                     vessel, vessel_teacher = hist2, hist2_teacher
+                    coef = 0.1
                 if epoch >= epoch_to_init + 30:
                     vessel, vessel_teacher = hist3, hist3_teacher
+                    coef = 0.4
+                if epoch >= epoch_to_init + 45:
+                    vessel, vessel_teacher = hist3, hist3_teacher
+                    coef = 0.6
             if histogram_to_transfer == 1:
                 vessel, vessel_teacher = hist1, hist1_teacher
+                coef = 0.05
             if histogram_to_transfer == 2:
                 vessel, vessel_teacher = hist2, hist2_teacher
+                coef = 0.1
             if histogram_to_transfer == 3:
                 vessel, vessel_teacher = hist3, hist3_teacher
+                coef = 0.4
             if histogram_to_transfer == 4:
                 vessel, vessel_teacher = hist4, hist4_teacher
+                coef = 0.6
 
             if epoch < epoch_to_init - 1 or epoch > 60:
                 loss = criterion(out, labels)
@@ -129,7 +133,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
-                loss = loss1 - 2 * loss2
+                loss = loss1 - coef * loss2
                 loss.backward(retain_graph=True)
             
             optimizer.step()
