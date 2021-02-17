@@ -145,13 +145,13 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
 
-            if check_baseline_knn_argument:
-                x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
-                knn_base.fit(x5.detach().cpu().numpy(), labels.cpu().numpy())
+            if check_baseline_knn_argument and epoch >= epoch_to_init - 1:
+                hist4 = torch.mean(hist4, dim = 1)
+                knn_base.fit(hist4.detach().cpu().numpy(), labels.cpu().numpy())
 
 
         ce_loss.append(train_loss)
-        if check_baseline_knn_argument:
+        if check_baseline_knn_argument and epoch >= epoch_to_init - 1:
             accuracy_for_knn.append(evaluate_model.knn_baseline_evaluation(student, knn_base, test_loader))
             print('MI is ', calculated_mi)
             print('knn so far ', accuracy_for_knn)

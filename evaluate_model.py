@@ -48,11 +48,11 @@ def knn_baseline_evaluation(model, knn_after_fit, testloader):
   for data, labels in testloader:
     data = data.to(device)
     labels = labels.to(device)
-    _, _, _, _, _, x5 = model(data)
+    _, _, _, _, hist4, _ = model(data)
     
-    x5 = torch.flatten(x5, start_dim = 1, end_dim = 3)
-    x5 = x5.detach().cpu().numpy()
-    knn_prediction = knn_after_fit.predict(x5)
+    hist4 = torch.mean(hist4, dim = 1)
+    hist4 = hist4.detach().cpu().numpy()
+    knn_prediction = knn_after_fit.predict(hist4)
 
     test_accuracy.append(accuracy_score(labels.cpu().data, knn_prediction))
   return np.mean(np.array(test_accuracy))
