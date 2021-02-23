@@ -50,7 +50,6 @@ class ConvBOFVGG(nn.Module):
         self.center_initializer = center_initial.to(device)
         self.center_initializer_y = center_initial_y.to(device)
         self.center_train = center_train
-        self.center_train_y = center_train_y
         self.imgsize = self.center_initializer.size(2)
         self.channels = self.center_initializer.size(1)
 

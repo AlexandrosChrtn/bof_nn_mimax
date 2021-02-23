@@ -70,9 +70,9 @@ os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_h
 #=====================================#
 #Code below is used to train a teacher - can be skipped if we assume teacher has been trained and resides at path given in load
 #=====================================#
-#Initialize the network. This is required irregardless of whether or not we train
+#Initialize the network. This is required irregardless of whether or not we train -- as per 24-2 we use a fixed arch 2 teacher
 teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = train_subset_loader,
- clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+ clusters = args.bof_centers, arch = 2, quant_input = True, end_with_linear = False,
  activation = 'relu', path = args.path, exp_number = args.exp_number)
 teacher.to(device)
 

@@ -37,11 +37,11 @@ class Boftrainer(nn.Module):
             self.conv4 = nn.Conv2d(24, 16, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
         
         elif arch == 3:
-            self.conv1 = nn.Conv2d(channels, 9, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
-            self.conv2 = nn.Conv2d(9, 9, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv1 = nn.Conv2d(channels, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv2 = nn.Conv2d(3, 3, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
             self.pool2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
-            self.conv3 = nn.Conv2d(9, 10, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
-            self.conv4 = nn.Conv2d(10, 9, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv3 = nn.Conv2d(3, 4, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv4 = nn.Conv2d(4, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
         
         self.l1 = nn.Linear(self.clusternumber, 20, bias = True).to(device)
         self.l2 = nn.Linear(20, 10, bias = True).to(device)
