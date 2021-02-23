@@ -51,6 +51,15 @@ def plot_accuracies(train_accuracy, test_accuracy, path, experiment_number, epoc
     plt.savefig(path + '/experiment_' + str(experiment_number) + '/acc_plot')
     plt.clf()
 
+def plot_accuracy_saver(accuracy_saver, path, experiment_number):
+    plt.title('Train accuracy per epoch')
+    plt.plot(accuracy_saver, label = 'Train accuracy')
+    plt.legend()
+    plt.savefig(path + '/experiment_' + str(experiment_number) + '/accuracy_every_epoch_plot')
+    plt.clf()
+
+
+
 def plot_loss(loss, experiment_number, path, epochs):
     plt.title("Loss")
     plt.xlabel("epochs")

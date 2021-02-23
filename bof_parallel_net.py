@@ -42,7 +42,7 @@ def photonic_sigmoid(x, cutoff=2):
 
 
 class ConvBOFVGG(nn.Module):
-    def __init__(self, center_initial, center_initial_y, center_train, center_train_y,  clusters, arch, quant_input, end_with_linear, activation, path, exp_number):
+    def __init__(self, center_initial, center_initial_y, center_train, clusters, arch, quant_input, end_with_linear, activation, path, exp_number):
         super().__init__()
         self.arch = arch
         self.path = path
@@ -79,17 +79,17 @@ class ConvBOFVGG(nn.Module):
             self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 24)
             self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 16)
         elif arch == 3:
-            self.conv1 = nn.Conv2d(self.channels, 9, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
-            self.conv2 = nn.Conv2d(9, 9, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv1 = nn.Conv2d(self.channels, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv2 = nn.Conv2d(3, 3, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
             self.pool2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
-            self.conv3 = nn.Conv2d(9, 10, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
-            self.conv4 = nn.Conv2d(10, 9, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv3 = nn.Conv2d(3, 4, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv4 = nn.Conv2d(4, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
             self.pool2_2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
-            self.conv5 = nn.Conv2d(9, 10, kernel_size = int(self.imgsize / 4), stride = 1, bias = True).to(device)
-            self.sizeforinit1 = (self.center_initializer.size(0), self.imgsize**2,9)
-            self.sizeforinit2 = (self.center_initializer.size(0), self.imgsize**2,9)
-            self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 10)
-            self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 9)            
+            self.conv5 = nn.Conv2d(3, 10, kernel_size = int(self.imgsize / 4), stride = 1, bias = True).to(device)
+            self.sizeforinit1 = (self.center_initializer.size(0), self.imgsize**2,3)
+            self.sizeforinit2 = (self.center_initializer.size(0), self.imgsize**2,3)
+            self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 4)
+            self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 3)            
 
         self.quant_input = quant_input
         self.end_with_linear = end_with_linear

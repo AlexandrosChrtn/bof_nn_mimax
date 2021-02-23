@@ -30,7 +30,7 @@ torch.manual_seed(20)
 np.random.seed(20)
 
 argparser = argparse.ArgumentParser(description='Configure hyper-parameters')
-argparser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
+argparser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
 argparser.add_argument('--optimizer',  choices = ['sgd','adam','rmsprop','adadelta','adagrad'], default='sgd',   help='Optimizer')
 argparser.add_argument('--dataset', type=str,   default='cifar10', help='Dataset. Currently supports cifar10 and mnist')
 argparser.add_argument('--batch_size', type=int,   default=250, help='Batch size')
@@ -50,23 +50,17 @@ argparser.add_argument('--load_model_path', type=str,   default="model.pt", help
 args = argparser.parse_args()
 
 if args.dataset == 'cifar10':
-    train_loader, test_loader, train_original, train_subset_loader = data_python.cifar10_loader(data_path='data', batch_size=args.batch_size, augment_train= args.augmentation)
+    train_loader, test_loader, train_original, train_subset_loader, bof_center_loader = data_python.cifar10_loader(data_path='data', batch_size=args.batch_size, augment_train= args.augmentation)
 if args.dataset == 'mnist':
     train_loader, test_loader, train_original = data_python.mnist_loader(data_path='data', batch_size=args.batch_size)
 
-#This for samples a batch randomly to initialize bof layers
-for data,lab in train_original:
+#This for samples a batch randomly to initialize bof layers -- 24-2-2021 uses 400 instances
+for data,lab in bof_center_loader:
   bof_cents = data
   bof_targs = lab
   break
 
 counter = 0
-for data,lab in train_original:
-  cents_train = data
-  cents_train_y = lab
-  counter = counter + 1
-  if counter > 20:
-    break
 
 os.system("mkdir " + args.path)
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number))
@@ -78,7 +72,7 @@ os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_h
 #=====================================#
 #Initialize the network. This is required irregardless of whether or not we train
 teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = train_subset_loader,
- center_train_y = cents_train_y, clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+ clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'relu', path = args.path, exp_number = args.exp_number)
 teacher.to(device)
 
@@ -123,7 +117,7 @@ teacher.load_state_dict(model_dict)
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
- center_train_y = cents_train_y.to(device), clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
+ clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = args.exp_number)
 student.to(device)
 student.student_network = True
@@ -145,7 +139,7 @@ start = time.time()
 criterion = nn.CrossEntropyLoss()
 
 #Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
-train_acc_list, test_acc_list = utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
 args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer)
 
@@ -175,5 +169,8 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
     f.write("\n")
     f.write("Test acc: ")
     f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
     f.write("\n")
     f.close()

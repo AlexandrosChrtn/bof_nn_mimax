@@ -61,8 +61,9 @@ def cifar10_loader(data_path='../data', batch_size=128, augment_train = False):
                                                pin_memory=True)
     train_loader_original = torch.utils.data.DataLoader(train_data_original, batch_size=batch_size,
                                                         shuffle=True, num_workers=2, pin_memory=True)
-
-    return train_loader, test_loader, train_loader_original, train_subset_loader
+    bof_center_loader = torch.utils.data.DataLoader(train_data_original, batch_size=400,
+                                                        shuffle=True, num_workers=2, pin_memory=True)
+    return train_loader, test_loader, train_loader_original, train_subset_loader, bof_center_loader
 
 def mnist_loader(data_path='../data', batch_size=128):
     """

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import evaluate_model
-from visualization_hidden import plot_accuracies, plot_loss, mkdir_and_vis_hist, plot_mi
+from visualization_hidden import plot_accuracies, plot_loss, mkdir_and_vis_hist, plot_mi, plot_accuracy_saver
 device = (torch.device('cuda') if torch.cuda.is_available()
 else torch.device('cpu'))
 from mi_estimation import mi_between_quantized
@@ -79,6 +79,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
     test_accuracy = []
     ce_loss = []
     mi_loss = []
+    accuracy_saver = []
     if check_baseline_knn_argument:
         knn_base = KNeighborsClassifier(n_neighbors = 3)
         accuracy_for_knn = []
@@ -172,10 +173,11 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         #    torch.save(student.state_dict(), path + "/experiment_" + str(exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
             evaluate_model.evaluate_model_train_test(student, train_loader_original, test_loader, train_accuracy, test_accuracy)
-       
-
         print("\nLoss, acc = ", train_loss, correct / total, 'for epoch ', epoch + 1)
+        accuracy_saver.append(correct / total)
+
     plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs)
-    return train_accuracy, test_accuracy
+    plot_accuracy_saver(accuracy_saver = accuracy_saver, path = path, experiment_number = exp_number)
+    return train_accuracy, test_accuracy, accuracy_saver
