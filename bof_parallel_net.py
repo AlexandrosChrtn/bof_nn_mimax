@@ -78,13 +78,13 @@ class ConvBOFVGG(nn.Module):
             self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 24)
             self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 16)
         elif arch == 3:
-            self.conv1 = nn.Conv2d(self.channels, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
-            self.conv2 = nn.Conv2d(3, 3, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv1 = nn.Conv2d(self.channels, 32, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv2 = nn.Conv2d(32, 32, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
             self.pool2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
-            self.conv3 = nn.Conv2d(3, 4, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
-            self.conv4 = nn.Conv2d(4, 3, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
+            self.conv3 = nn.Conv2d(32, 40, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
+            self.conv4 = nn.Conv2d(40, 32, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
             self.pool2_2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
-            self.conv5 = nn.Conv2d(3, 10, kernel_size = int(self.imgsize / 4), stride = 1, bias = True).to(device)
+            self.conv5 = nn.Conv2d(32, 10, kernel_size = int(self.imgsize / 4), stride = 1, bias = True).to(device)
             self.sizeforinit1 = (self.center_initializer.size(0), self.imgsize**2,3)
             self.sizeforinit2 = (self.center_initializer.size(0), self.imgsize**2,3)
             self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 4)
@@ -123,6 +123,11 @@ class ConvBOFVGG(nn.Module):
             self.activations = lambda r : torch.celu(r)
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
+        
+        self.codebook1 = torch.rand(clusters, 32)
+        self.codebook2 = torch.rand(clusters, 32)
+        self.codebook3 = torch.rand(clusters, 40)
+        self.codebook4 = torch.rand(clusters, 32)
 
     def prepare_centers(self, k_means_iterations = 500, train_iterations = 130, n_initializations = 1):
         '''

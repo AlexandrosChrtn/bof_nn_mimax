@@ -92,7 +92,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         train_loss, correct, total, calculated_mi, calculated_mi2 = 0.0,0.0, 0.0, 0.0, 0.0
         if epoch == (epoch_to_init - 1):
             student.prepare_centers(k_means_iter,codebook_iter)
-            teacher.prepare_centers(k_means_iter,codebook_iter) #perhaps do that with a properly trained teacher
+            #teacher.prepare_centers(k_means_iter,codebook_iter) #perhaps do that with a properly trained teacher
             student.start_bof_training = True
             teacher.start_bof_training = True
 
@@ -135,11 +135,16 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
                 vessel, vessel_teacher = hist4, hist4_teacher
                 coef = 0.6
 
-            if epoch < epoch_to_init - 1 or epoch >= 65:
+            if epoch < epoch_to_init - 1:
                 loss = criterion(out, labels)
                 loss.backward()
                 student.start_bof_training = False
                 teacher.start_bof_training = False
+            elif epoch >= epoch_to_init - 1:
+                loss1 = criterion(out, labels)
+                loss2 = mi_between_quantized(vessel, vessel_teacher)
+                loss = loss1 - coef * loss2
+                loss.backward(retain_graph=True)   
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
@@ -175,7 +180,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             knn_base = KNeighborsClassifier(n_neighbors = 3)
 
         
-        if epoch >= epoch_to_init - 1 and epoch < 65:
+        if epoch >= epoch_to_init - 1:
             mi_loss.append(calculated_mi)
             mi_loss2.append(calculated_mi2)
             #mi_loss.append(loss2.data.item())
