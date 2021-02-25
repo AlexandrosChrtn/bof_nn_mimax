@@ -195,4 +195,4 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs, number = 1)
     plot_mi(mi = mi_loss2, experiment_number = exp_number, path = path, epochs = epochs, number =2)
-    return train_accuracy, test_accuracy
+    return train_accuracy, test_accuracy, accuracy_saver

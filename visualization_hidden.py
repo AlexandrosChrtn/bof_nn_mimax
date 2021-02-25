@@ -68,10 +68,10 @@ def plot_loss(loss, experiment_number, path, epochs):
     plt.savefig(path + '/experiment_' + str(experiment_number) + '/loss')
     plt.clf()
 
-def plot_mi(mi, experiment_number, path, epochs):
-    plt.title("MI between quantized")
+def plot_mi(mi, experiment_number, path, epochs, number):
+    plt.title("MI between quantized "+str(number))
     plt.xlabel("epochs")
     plt.ylabel("MI")
     plt.plot(mi)
-    plt.savefig(path + '/experiment_' + str(experiment_number) + '/mi_loss')
+    plt.savefig(path + '/experiment_' + str(experiment_number) + '/mi_loss' + str(number))
     plt.clf()
