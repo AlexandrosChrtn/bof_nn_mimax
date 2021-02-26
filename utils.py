@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 import evaluate_model
-from visualization_hidden import plot_accuracies, plot_loss, mkdir_and_vis_hist, plot_mi
+from visualization_hidden import plot_accuracies, plot_loss, plot_accuracy_saver, mkdir_and_vis_hist, plot_mi
 device = (torch.device('cuda') if torch.cuda.is_available()
 else torch.device('cpu'))
 from mi_estimation import mi_between_quantized
@@ -107,10 +107,10 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             if histogram_to_transfer == 0:
                 if epoch < epoch_to_init + 30:
                     vessel, vessel_teacher = hist1, hist1_teacher
-                    coef = 0.2
+                    coef = 0.5
                 if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 60:
                     vessel, vessel_teacher = hist2, hist2_teacher
-                    coef = 0.4
+                    coef = 0.85
                 #if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 45:
                 #    vessel, vessel_teacher = hist3, hist3_teacher
                 #    coef = 0.4
@@ -135,12 +135,12 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
                 vessel, vessel_teacher = hist4, hist4_teacher
                 coef = 0.6
 
-            if epoch < epoch_to_init - 1:
+            if epoch < epoch_to_init - 1 or epoch >= 65:
                 loss = criterion(out, labels)
                 loss.backward()
                 student.start_bof_training = False
                 teacher.start_bof_training = False
-            elif epoch >= epoch_to_init - 1:
+            elif epoch >= epoch_to_init - 1 and epoch < 65:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
                 loss = loss1 - coef * loss2
