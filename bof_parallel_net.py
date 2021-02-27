@@ -85,10 +85,10 @@ class ConvBOFVGG(nn.Module):
             self.conv4 = nn.Conv2d(40, 32, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
             self.pool2_2 = nn.MaxPool2d(kernel_size = 2, stride = 2).to(device)
             self.conv5 = nn.Conv2d(32, 10, kernel_size = int(self.imgsize / 4), stride = 1, bias = True).to(device)
-            self.sizeforinit1 = (self.center_initializer.size(0), self.imgsize**2,3)
-            self.sizeforinit2 = (self.center_initializer.size(0), self.imgsize**2,3)
-            self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 4)
-            self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 3)            
+            self.sizeforinit1 = (self.center_initializer.size(0), self.imgsize**2,32)
+            self.sizeforinit2 = (self.center_initializer.size(0), self.imgsize**2,32)
+            self.sizeforinit3 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 40)
+            self.sizeforinit4 = (self.center_initializer.size(0),(int(self.imgsize/2))**2, 32)            
 
         self.quant_input = quant_input
         self.end_with_linear = end_with_linear
