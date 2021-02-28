@@ -89,7 +89,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
         param.requires_grad = False
     for epoch in range(epochs):
         student.train()
-        train_loss, correct, total, calculated_mi, calculated_mi2 = 0.0,0.0, 0.0, 0.0, 0.0
+        train_loss, correct, total, calculated_mi, calculated_mi2 = .0, .0, .0, .0, .0
         if epoch == (epoch_to_init - 1):
             student.prepare_centers(k_means_iter,codebook_iter)
             #teacher.prepare_centers(k_means_iter,codebook_iter) #perhaps do that with a properly trained teacher
@@ -160,7 +160,8 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             else:
               train_loss += loss1.data.item() / labels.size(0)
               calculated_mi += loss2.data.item() / labels.size(0)
-              #calculated_mi2 += loss3.data.item() / labels.size(0)
+              if histogram_to_transfer == 5:
+                calculated_mi2 += loss3.data.item() / labels.size(0)
 
             _, predicted = torch.max(out.data, 1)
             total += labels.size(0)
@@ -193,11 +194,13 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
 
         print("\nLoss, acc = ", train_loss, correct / total, 'for epoch ', epoch + 1)
         print('mi loss ', calculated_mi)
+        if histogram_to_transfer == 5:
+            print('mi loss 2 : ', calculated_mi2)
         accuracy_saver.append(correct / total)
 
     plot_accuracy_saver(accuracy_saver = accuracy_saver, path = path, experiment_number = exp_number)
     plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs, number = 1)
-    plot_mi(mi = mi_loss2, experiment_number = exp_number, path = path, epochs = epochs, number =2)
+    plot_mi(mi = mi_loss2, experiment_number = exp_number, path = path, epochs = epochs, number = 2)
     return train_accuracy, test_accuracy, accuracy_saver
