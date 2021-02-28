@@ -43,8 +43,8 @@ class Boftrainer(nn.Module):
             self.conv3 = nn.Conv2d(32, 40, kernel_size = 3, stride = 1, padding = (1,1), bias = True).to(device)
             self.conv4 = nn.Conv2d(40, 32, kernel_size = 3, stride = 1, padding=(1,1), bias = True).to(device)
         
-        self.l1 = nn.Linear(self.clusternumber, 20, bias = True).to(device)
-        self.l2 = nn.Linear(20, 10, bias = True).to(device)
+        self.l1 = nn.Linear(self.clusternumber, 12, bias = True).to(device)
+        self.l2 = nn.Linear(12, 10, bias = True).to(device)
         self.sigma = nn.Parameter(sigma, requires_grad=True)
         self.codebook = nn.Parameter(centers, requires_grad=True)
         if activation == 'relu':

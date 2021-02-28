@@ -72,7 +72,7 @@ os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_h
 #=====================================#
 #Initialize the network. This is required irregardless of whether or not we train -- as per 24-2 we use a fixed arch 2 teacher
 teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = train_subset_loader,
- clusters = args.bof_centers, arch = 3, quant_input = True, end_with_linear = False,
+ clusters = args.bof_centers, arch = 2, quant_input = True, end_with_linear = False,
  activation = 'relu', path = args.path, exp_number = args.exp_number)
 teacher.to(device)
 
@@ -122,24 +122,28 @@ student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), cen
 student.to(device)
 student.student_network = True
 
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
 # Optimizer
 if args.optimizer == 'sgd':
-    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+    optimizer = torch.optim.SGD(non_bof_params,lr= args.lr)
 elif args.optimizer == 'rmsprop':
-    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+    optimizer = torch.optim.RMSprop(non_bof_params,lr= args.lr)
 elif args.optimizer == 'adadelta':
-    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+    optimizer = torch.optim.Adadelta(non_bof_params,lr= args.lr)
 elif args.optimizer == 'adagrad':
-    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+    optimizer = torch.optim.Adagrad(non_bof_params,lr= args.lr)
 elif args.optimizer == 'adam':
-    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+    optimizer = torch.optim.Adam(non_bof_params,lr= args.lr)
 
 start = time.time()
 #Classification loss i.e. cross entropy loss
 criterion = nn.CrossEntropyLoss()
 
 #Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
-train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, criterion, train_loader,
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
 args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer)
 

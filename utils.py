@@ -61,7 +61,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
 
 
-def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
+def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
  eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = False):
     """
     Trains a classification model
@@ -100,6 +100,8 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
             instances, labels = instances.to(device), labels.to(device)
 
             optimizer.zero_grad()
+            bof_params_optimizer.zero_grad()
+
             out, hist1, hist2, hist3, hist4, x5 = student(instances)#replaced hidden rep with histogram after pooling
             out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, x5teacher = teacher(instances)
 
@@ -140,7 +142,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
                 loss.backward()
                 student.start_bof_training = False
                 teacher.start_bof_training = False
-            elif epoch >= epoch_to_init - 1 and epoch < 65:
+            elif epoch >= epoch_to_init - 1 and epoch < 65 and not histogram_to_transfer == 5:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
                 loss = loss1 - coef * loss2
@@ -153,6 +155,7 @@ def train_bof_for_kt(student, teacher, optimizer, criterion, train_loader, train
                 loss.backward(retain_graph=True)
             
             optimizer.step()
+            bof_params_optimizer.step()
 
             # Adds calculated loss to total loss and the maximum output for the prediction
             if epoch < epoch_to_init - 1:

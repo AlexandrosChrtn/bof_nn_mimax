@@ -101,13 +101,12 @@ class ConvBOFVGG(nn.Module):
         else:
             self.arch1 = False
         
-        self.sigma0 = (torch.ones(size = (1, self.clusternumber)) * 0.90).to(device)
         self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 0.75).to(device)
         self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 0.65).to(device)
         self.sigma3 = (torch.ones(size = (1, self.clusternumber)) * 0.50).to(device)
         self.sigma4 = (torch.ones(size = (1, self.clusternumber)) * 0.40).to(device)
-        self.sigma = torch.stack((self.sigma0, self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1)
-        self.sigma.requires_grad=False
+        self.sigma = nn.Parameter(torch.stack((self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1))
+        self.sigma.requires_grad=True
         #IF During kt we want to train sigma along with centers then we may set to true
 
         self.student_network = False
@@ -124,10 +123,11 @@ class ConvBOFVGG(nn.Module):
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
         
-        self.codebook1 = torch.rand(clusters, 32)
-        self.codebook2 = torch.rand(clusters, 32)
-        self.codebook3 = torch.rand(clusters, 40)
-        self.codebook4 = torch.rand(clusters, 32)
+        self.codebook1 = (torch.rand(clusters, 16, requires_grad=True))
+        self.codebook2 = (torch.rand(clusters, 16, requires_grad=True))
+        self.codebook3 = (torch.rand(clusters, 24, requires_grad=True))
+        self.codebook4 = (torch.rand(clusters, 16, requires_grad=True))
+
 
     def prepare_centers(self, k_means_iterations = 500, train_iterations = 130, n_initializations = 1):
         '''
@@ -171,20 +171,26 @@ class ConvBOFVGG(nn.Module):
 
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
-        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[1], 1, train_iterations, self.center_train)
+        print('beforesigma ', self.sigma)
+        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[0], 1, train_iterations, self.center_train)
         print('after', (self.codebook1[4]))
-        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[2], 2, train_iterations, self.center_train)
+        
+        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[1], 2, train_iterations, self.center_train)
         print('after', (self.codebook2[4]))
-        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[3], 3, train_iterations, self.center_train)
+
+        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[2], 3, train_iterations, self.center_train)
         print('after', (self.codebook3[4]))
-        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[4], 4, train_iterations, self.center_train)
+
+        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[3], 4, train_iterations, self.center_train)
+        print('after', (self.codebook4[4]))
+        print('after', (self.sigma))
 
         #If we want to train centers for student
-        if self.student_network:
-            self.codebook1.requires_grad = True
-            self.codebook2.requires_grad = True
-            self.codebook3.requires_grad = True
-            self.codebook4.requires_grad = True
+        
+        self.codebook1 = nn.Parameter(self.codebook1, requires_grad= True)
+        self.codebook2 = nn.Parameter(self.codebook2, requires_grad= True)
+        self.codebook3 = nn.Parameter(self.codebook3, requires_grad= True)
+        self.codebook4 = nn.Parameter(self.codebook4, requires_grad= True)
 
 
         #IF we want a trainable codebook during kt then we may set it as nn.Parameter here
@@ -199,7 +205,7 @@ class ConvBOFVGG(nn.Module):
         model.to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(),lr = 0.0001)
-        for epoch in range(iterations):
+        for _ in range(iterations):
             for data, labels in train_loader:
                 data = data.to(device)
                 labels = labels.to(device)
@@ -222,7 +228,7 @@ class ConvBOFVGG(nn.Module):
             histogram1 = torch.flatten(x2, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
             histogram1 = histogram1.transpose(1,2)
             histogram1 = histogram1.unsqueeze(1)
-            histogram1 = torch.exp(-(histogram1.to(device) - self.codebook1.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[1].unsqueeze(0).unsqueeze(2).to(device))
+            histogram1 = torch.exp(-(histogram1.to(device) - self.codebook1.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[0].unsqueeze(0).unsqueeze(2).to(device))
             histogram1 = F.normalize(histogram1, 1, dim = 1).to(device)
 
             histogram1 = torch.transpose(histogram1, 1, 2)
@@ -237,7 +243,7 @@ class ConvBOFVGG(nn.Module):
                 histogram2 = torch.flatten(x3, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram2 = histogram2.transpose(1,2)
                 histogram2 = histogram2.unsqueeze(1)
-                histogram2 = torch.exp(-(histogram2.to(device) - self.codebook2.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[2].unsqueeze(0).unsqueeze(2).to(device))
+                histogram2 = torch.exp(-(histogram2.to(device) - self.codebook2.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[1].unsqueeze(0).unsqueeze(2).to(device))
                 histogram2 = F.normalize(histogram2, 1, dim = 1).to(device)
 
                 histogram2 = torch.transpose(histogram2, 1, 2)
@@ -252,7 +258,7 @@ class ConvBOFVGG(nn.Module):
                 histogram2 = torch.flatten(x3, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram2 = histogram2.transpose(1,2)
                 histogram2 = histogram2.unsqueeze(1)
-                histogram2 = torch.exp(-(histogram2.to(device) - self.codebook2.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[2].unsqueeze(0).unsqueeze(2).to(device))
+                histogram2 = torch.exp(-(histogram2.to(device) - self.codebook2.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[1].unsqueeze(0).unsqueeze(2).to(device))
                 histogram2 = F.normalize(histogram2, 1, dim = 1).to(device)
 
                 histogram2 = torch.transpose(histogram2, 1, 2)
@@ -267,7 +273,7 @@ class ConvBOFVGG(nn.Module):
             histogram3 = torch.flatten(x4, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
             histogram3 = histogram3.transpose(1,2)
             histogram3 = histogram3.unsqueeze(1)
-            histogram3 = torch.exp(-(histogram3.to(device) - self.codebook3.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[3].unsqueeze(0).unsqueeze(2).to(device))
+            histogram3 = torch.exp(-(histogram3.to(device) - self.codebook3.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[2].unsqueeze(0).unsqueeze(2).to(device))
             histogram3 = F.normalize(histogram3, 1, dim = 1).to(device)
 
             histogram3 = torch.transpose(histogram3, 1, 2)
@@ -282,7 +288,7 @@ class ConvBOFVGG(nn.Module):
                 histogram4 = torch.flatten(x5, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram4 = histogram4.transpose(1,2)
                 histogram4 = histogram4.unsqueeze(1)
-                histogram4 = torch.exp(-(histogram4.to(device) - self.codebook4.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[4].unsqueeze(0).unsqueeze(2).to(device))
+                histogram4 = torch.exp(-(histogram4.to(device) - self.codebook4.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[3].unsqueeze(0).unsqueeze(2).to(device))
                 histogram4 = F.normalize(histogram4, 1, dim = 1).to(device)
 
                 histogram4 = torch.transpose(histogram4, 1, 2)
@@ -297,7 +303,7 @@ class ConvBOFVGG(nn.Module):
                 histogram4 = torch.flatten(x, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram4 = histogram4.transpose(1,2)
                 histogram4 = histogram4.unsqueeze(1)
-                histogram4 = torch.exp(-(histogram4.to(device) - self.codebook4.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[4].unsqueeze(0).unsqueeze(2).to(device))
+                histogram4 = torch.exp(-(histogram4.to(device) - self.codebook4.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma[3].unsqueeze(0).unsqueeze(2).to(device))
                 histogram4 = F.normalize(histogram4, 1, dim = 1).to(device)
 
                 histogram4 = torch.transpose(histogram4, 1, 2)
