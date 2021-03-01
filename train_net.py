@@ -122,21 +122,23 @@ student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), cen
 student.to(device)
 student.student_network = True
 
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
 non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
 student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
 optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
 
 # Optimizer
 if args.optimizer == 'sgd':
-    optimizer = torch.optim.SGD(non_bof_params,lr= args.lr)
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
 elif args.optimizer == 'rmsprop':
-    optimizer = torch.optim.RMSprop(non_bof_params,lr= args.lr)
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
 elif args.optimizer == 'adadelta':
-    optimizer = torch.optim.Adadelta(non_bof_params,lr= args.lr)
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
 elif args.optimizer == 'adagrad':
-    optimizer = torch.optim.Adagrad(non_bof_params,lr= args.lr)
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
 elif args.optimizer == 'adam':
-    optimizer = torch.optim.Adam(non_bof_params,lr= args.lr)
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
 
 start = time.time()
 #Classification loss i.e. cross entropy loss

@@ -100,7 +100,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             instances, labels = instances.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            bof_params_optimizer.zero_grad()
+            #bof_params_optimizer.zero_grad()#Currently unavailable
 
             out, hist1, hist2, hist3, hist4, x5 = student(instances)#replaced hidden rep with histogram after pooling
             out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, x5teacher = teacher(instances)
@@ -117,7 +117,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 #    vessel, vessel_teacher = hist3, hist3_teacher
                 #    coef = 0.4
                 #if epoch >= epoch_to_init + 45:
-                #    vessel, vessel_teacher = hist3, hist3_teacher
+                #    vessel, vessel_teacher = hist4, hist4_teacher
                 #    coef = 0.6
             if histogram_to_transfer == 5:
                     vessel, vessel_teacher = hist1, hist1_teacher
@@ -155,7 +155,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 loss.backward(retain_graph=True)
             
             optimizer.step()
-            bof_params_optimizer.step()
+            #bof_params_optimizer.step()#Currently unavailable
 
             # Adds calculated loss to total loss and the maximum output for the prediction
             if epoch < epoch_to_init - 1:

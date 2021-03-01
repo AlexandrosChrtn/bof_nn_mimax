@@ -105,8 +105,8 @@ class ConvBOFVGG(nn.Module):
         self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 0.65).to(device)
         self.sigma3 = (torch.ones(size = (1, self.clusternumber)) * 0.50).to(device)
         self.sigma4 = (torch.ones(size = (1, self.clusternumber)) * 0.40).to(device)
-        self.sigma = nn.Parameter(torch.stack((self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1))
-        self.sigma.requires_grad=True
+        self.sigma = torch.stack((self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1)
+        self.sigma.requires_grad=False
         #IF During kt we want to train sigma along with centers then we may set to true
 
         self.student_network = False
@@ -123,10 +123,10 @@ class ConvBOFVGG(nn.Module):
         if self.activation == 'photosig':
             self.activations = lambda r : photonic_sigmoid(r)
         
-        self.codebook1 = (torch.rand(clusters, 16, requires_grad=True))
-        self.codebook2 = (torch.rand(clusters, 16, requires_grad=True))
-        self.codebook3 = (torch.rand(clusters, 24, requires_grad=True))
-        self.codebook4 = (torch.rand(clusters, 16, requires_grad=True))
+        self.codebook1 = (torch.empty(clusters, 16, requires_grad=False))
+        self.codebook2 = (torch.empty(clusters, 16, requires_grad=False))
+        self.codebook3 = (torch.empty(clusters, 24, requires_grad=False))
+        self.codebook4 = (torch.empty(clusters, 16, requires_grad=False))
 
 
     def prepare_centers(self, k_means_iterations = 500, train_iterations = 130, n_initializations = 1):
@@ -172,16 +172,16 @@ class ConvBOFVGG(nn.Module):
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
         print('beforesigma ', self.sigma)
-        self.codebook1, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[0], 1, train_iterations, self.center_train)
+        self.codebook1, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[0], 1, train_iterations, self.center_train)
         print('after', (self.codebook1[4]))
         
-        self.codebook2, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[1], 2, train_iterations, self.center_train)
+        self.codebook2, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[1], 2, train_iterations, self.center_train)
         print('after', (self.codebook2[4]))
 
-        self.codebook3, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[2], 3, train_iterations, self.center_train)
+        self.codebook3, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[2], 3, train_iterations, self.center_train)
         print('after', (self.codebook3[4]))
 
-        self.codebook4, self.sigma[4] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[3], 4, train_iterations, self.center_train)
+        self.codebook4, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[3], 4, train_iterations, self.center_train)
         print('after', (self.codebook4[4]))
         print('after', (self.sigma))
 
@@ -191,6 +191,7 @@ class ConvBOFVGG(nn.Module):
         self.codebook2 = nn.Parameter(self.codebook2, requires_grad= True)
         self.codebook3 = nn.Parameter(self.codebook3, requires_grad= True)
         self.codebook4 = nn.Parameter(self.codebook4, requires_grad= True)
+        self.sigma = nn.Parameter(self.sigma, requires_grad= True)
 
 
         #IF we want a trainable codebook during kt then we may set it as nn.Parameter here
@@ -216,9 +217,11 @@ class ConvBOFVGG(nn.Module):
                 #print(model.codebook.grad)
                 optimizer.step()
                 optimizer.zero_grad()
+            with torch.no_grad():
+                final_cb = model.codebook.detach().to(device)
+                final_sigma = model.sigma.detach().to(device)
 
-        return model.codebook.to(device), model.sigma.to(device)
-
+        return final_cb, final_sigma
 
     def forward(self,x):
 
