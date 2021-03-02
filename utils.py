@@ -73,8 +73,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
     :param test_loader: pytorch object that feeds instance-label pairs from test
     :param epochs: epochs
     :param eval_freq: evaluatation frequency
-    :return: returns void -- trains the input model based on data from trainloader and plots accuracies in train and test
-    and the loss during training
+    :return: three lists with accuracies
     """
     train_accuracy = []
     test_accuracy = []
@@ -193,6 +192,8 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         #    torch.save(student.state_dict(), path + "/experiment_" + str(exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
             evaluate_model.evaluate_model_train_test(student, train_loader_original, test_loader, train_accuracy, test_accuracy)
+        if epoch > 20 and epoch % 10 == 0:
+            torch.save(student.state_dict(), path + "/experiment_"+str(exp_number) + "/"+str(epoch) + "model_checkpoint.pt")
        
 
         print("\nLoss, acc = ", train_loss, correct / total, 'for epoch ', epoch + 1)
