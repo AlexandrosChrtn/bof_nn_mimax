@@ -74,7 +74,6 @@ class Boftrainer(nn.Module):
         x = x.transpose(1,2)
         x = x.unsqueeze(1)
 
-        #NOTE: x is detached here //detach was deprecated 07-02-21 as it did not seem to slow down / speed up codebook training
         x = torch.exp(-(x.to(device) - self.codebook.unsqueeze(0).unsqueeze(2).to(device)).abs().pow(2).sum(3) * self.sigma.unsqueeze(0).unsqueeze(2).to(device))
         x = F.normalize(x, 1, dim = 1).to(device)
         x = torch.mean(x, dim = 2)

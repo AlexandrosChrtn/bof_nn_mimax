@@ -179,4 +179,7 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
     f.write("Accuracy saver: ")
     f.write(str(accuracy_saver))
     f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
     f.close()

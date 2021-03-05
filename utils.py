@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 import evaluate_model
@@ -62,7 +61,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
 
 
 def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
- eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = False):
+ eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = False, teacher2 = None, teacher3 = None):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -75,6 +74,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
     :param eval_freq: evaluatation frequency
     :return: three lists with accuracies
     """
+
     train_accuracy = []
     test_accuracy = []
     ce_loss = []
@@ -90,8 +90,14 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         student.train()
         train_loss, correct, total, calculated_mi, calculated_mi2 = .0, .0, .0, .0, .0
         if epoch == (epoch_to_init - 1):
+            #if teacher2 != None and epoch < 30:
+            #    teacher = teacher2
+            #    teacher.prepare_centers(k_means_iter,codebook_iter)
+            #if teacher3 != None and epoch >= 30 and epoch < 60:
+            #    teacher = teacher3
+            #    teacher.prepare_centers(k_means_iter, codebook_iter)
             student.prepare_centers(k_means_iter,codebook_iter)
-            #teacher.prepare_centers(k_means_iter,codebook_iter) #perhaps do that with a properly trained teacher
+            teacher.prepare_centers(k_means_iter,codebook_iter)
             student.start_bof_training = True
             teacher.start_bof_training = True
 
@@ -101,8 +107,9 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             optimizer.zero_grad()
             #bof_params_optimizer.zero_grad()#Currently unavailable
 
-            out, hist1, hist2, hist3, hist4, x5 = student(instances)#replaced hidden rep with histogram after pooling
-            out_teacher, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, x5teacher = teacher(instances)
+            out, hist1, hist2, hist3, hist4, _ = student(instances)#replaced hidden rep with histogram after pooling
+            if epoch >= epoch_to_init - 1:
+                _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, _ = teacher(instances)
 
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
@@ -201,6 +208,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         if histogram_to_transfer == 5:
             print('mi loss 2 : ', calculated_mi2)
         accuracy_saver.append(correct / total)
+
 
     plot_accuracy_saver(accuracy_saver = accuracy_saver, path = path, experiment_number = exp_number)
     plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
