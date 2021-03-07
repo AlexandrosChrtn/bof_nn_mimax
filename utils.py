@@ -105,14 +105,15 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             if epoch >= epoch_to_init - 1:
                 _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
             else:
-              _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = 0,0,0,0,0,0
+              _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = 0,0,0,0,0
             
             #Ugly code but whatever works for now
+            total_epochs_of_mi_max = 90
             if histogram_to_transfer == 0:
-                if epoch < epoch_to_init + 30:
+                if epoch < epoch_to_init + 45:
                     vessel, vessel_teacher = hist1, hist1_teacher
                     coef = 0.5
-                if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 60:
+                if epoch >= epoch_to_init + 45 and epoch < epoch_to_init + total_epochs_of_mi_max:
                     vessel, vessel_teacher = hist2, hist2_teacher
                     coef = 0.85
                 #if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 45:
@@ -139,12 +140,12 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 vessel, vessel_teacher = hist4, hist4_teacher
                 coef = 0.6
 
-            if epoch < epoch_to_init - 1 or epoch >= 90:
+            if epoch < epoch_to_init - 1 or epoch >= total_epochs_of_mi_max:
                 loss = criterion(out, labels)
                 loss.backward()
                 student.start_bof_training = False
                 teacher.start_bof_training = False
-            elif epoch >= epoch_to_init - 1 and epoch < 65 and not histogram_to_transfer == 5:
+            elif epoch >= epoch_to_init - 1 and epoch < total_epochs_of_mi_max and not histogram_to_transfer == 5:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
                 loss = loss1 - coef * loss2

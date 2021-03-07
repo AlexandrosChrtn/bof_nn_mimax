@@ -184,13 +184,15 @@ class ConvBOFVGG(nn.Module):
         print('after cd3', (self.codebook3[4]))
         print('after cd4', (self.codebook4[4]))
         print('after sig', (self.sigma))
-
-        #If we want to train centers for student
         
-        self.codebook1 = nn.Parameter(self.codebook1, requires_grad= True)
-        self.codebook2 = nn.Parameter(self.codebook2, requires_grad= True)
-        self.codebook3 = nn.Parameter(self.codebook3, requires_grad= True)
-        self.codebook4 = nn.Parameter(self.codebook4, requires_grad= True)
+        if self.use_hists >= 1:
+            self.codebook1 = nn.Parameter(self.codebook1, requires_grad= True)
+            if self.use_hists >= 2:
+                self.codebook2 = nn.Parameter(self.codebook2, requires_grad= True)
+                if self.use_hists >= 3:
+                    self.codebook3 = nn.Parameter(self.codebook3, requires_grad= True)
+                    if self.use_hists >= 4:
+                        self.codebook4 = nn.Parameter(self.codebook4, requires_grad= True)
         self.sigma = nn.Parameter(self.sigma, requires_grad= True)
 
 

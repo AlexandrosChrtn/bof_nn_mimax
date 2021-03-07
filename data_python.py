@@ -35,11 +35,11 @@ def cifar10_loader(data_path='../data', batch_size=128, augment_train = False):
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2,
                                                pin_memory=True)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=2,
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=100, shuffle=True, num_workers=2,
                                               pin_memory=True)
     train_subset_loader = torch.utils.data.DataLoader(train_data_sample, batch_size=batch_size, shuffle=True, num_workers=2,
                                                pin_memory=True)
-    train_loader_original = torch.utils.data.DataLoader(train_data_original, batch_size=batch_size,
+    train_loader_original = torch.utils.data.DataLoader(train_data_original, batch_size=100,
                                                         shuffle=True, num_workers=2, pin_memory=True)
     bof_center_loader = torch.utils.data.DataLoader(train_data_original, batch_size=450,
                                                         shuffle=True, num_workers=2, pin_memory=True)
