@@ -42,10 +42,11 @@ def photonic_sigmoid(x, cutoff=2):
 
 
 class ConvBOFVGG(nn.Module):
-    def __init__(self, center_initial, center_initial_y, center_train, clusters, arch, quant_input, end_with_linear, activation, path, exp_number):
+    def __init__(self, center_initial, center_initial_y, center_train, clusters, arch, quant_input, end_with_linear, activation, path, exp_number, use_hists):
         super().__init__()
         self.arch = arch
         self.path = path
+        self.use_hists = use_hists
         self.experiment_number = exp_number
         self.center_initializer = center_initial.to(device)
         self.center_initializer_y = center_initial_y.to(device)
@@ -101,14 +102,12 @@ class ConvBOFVGG(nn.Module):
         else:
             self.arch1 = False
         
-        self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 0.75).to(device)
-        self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 0.65).to(device)
+        self.sigma1 = (torch.ones(size = (1, self.clusternumber)) * 0.70).to(device)
+        self.sigma2 = (torch.ones(size = (1, self.clusternumber)) * 0.60).to(device)
         self.sigma3 = (torch.ones(size = (1, self.clusternumber)) * 0.50).to(device)
         self.sigma4 = (torch.ones(size = (1, self.clusternumber)) * 0.40).to(device)
         self.sigma = torch.stack((self.sigma1,self.sigma2,self.sigma3,self.sigma4)).squeeze(1)
         self.sigma.requires_grad=False
-        #IF During kt we want to train sigma along with centers then we may set to true
-
         self.student_network = False
         
         self.activation = activation
@@ -139,51 +138,52 @@ class ConvBOFVGG(nn.Module):
         Both codebook and sigma change during training
         '''
         print('Initializing centers ...')
+        print('beforesigma ', self.sigma)
         KMC = KMeans(n_clusters=self.clusternumber, max_iter = k_means_iterations, n_init = n_initializations)
-
-        aa1init = self.activations(self.conv1(self.center_initializer.to(device)).to(device)).detach()
-        aa1 = torch.flatten(aa1init, start_dim = 2, end_dim=3)
-        aa1 = torch.reshape(aa1.transpose(1,2), (self.sizeforinit1))
-        clusters = np.array((torch.reshape(aa1, (self.sizeforinit1[0] * self.sizeforinit1[1], self.sizeforinit1[2])).cpu()))
-        clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
-        self.codebook1 = clusters
+        if self.use_hists >= 1:
+            aa1init = self.activations(self.conv1(self.center_initializer.to(device)).to(device)).detach()
+            aa1 = torch.flatten(aa1init, start_dim = 2, end_dim=3)
+            aa1 = torch.reshape(aa1.transpose(1,2), (self.sizeforinit1))
+            clusters = np.array((torch.reshape(aa1, (self.sizeforinit1[0] * self.sizeforinit1[1], self.sizeforinit1[2])).cpu()))
+            clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
+            #self.codebook1 = clusters
+            self.codebook1, self.sigma[0] = self.train_bof_centers_with_ce(clusters, self.sigma[0], 1, train_iterations, self.center_train)
         
-        aa2init = self.activations(self.conv2(aa1init.to(device)).to(device)).detach()
-        aa2 = torch.flatten(aa2init, start_dim = 2, end_dim=3)
-        aa2 = torch.reshape(aa2.transpose(1,2), (self.sizeforinit2))
-        clusters = np.array((torch.reshape(aa2, (self.sizeforinit2[0] * self.sizeforinit2[1], self.sizeforinit2[2])).cpu()))
-        clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
-        self.codebook2 = clusters
+        if self.use_hists >= 2:
+            aa2init = self.activations(self.conv2(aa1init.to(device)).to(device)).detach()
+            aa2 = torch.flatten(aa2init, start_dim = 2, end_dim=3)
+            aa2 = torch.reshape(aa2.transpose(1,2), (self.sizeforinit2))
+            clusters = np.array((torch.reshape(aa2, (self.sizeforinit2[0] * self.sizeforinit2[1], self.sizeforinit2[2])).cpu()))
+            clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
+            #self.codebook2 = clusters
+            self.codebook2, self.sigma[1] = self.train_bof_centers_with_ce(clusters, self.sigma[1], 2, train_iterations, self.center_train)
 
-        aa3init = self.activations(self.conv3(self.pool2(aa2init.to(device))).to(device)).detach()
-        aa3 = torch.flatten(aa3init, start_dim = 2, end_dim=3)
-        aa3 = torch.reshape(aa3.transpose(1,2), (self.sizeforinit3))
-        clusters = np.array((torch.reshape(aa3, (self.sizeforinit3[0] * self.sizeforinit3[1], self.sizeforinit3[2])).cpu()))
-        clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
-        self.codebook3 = clusters
+        if self.use_hists >= 3:
+            aa3init = self.activations(self.conv3(self.pool2(aa2init.to(device))).to(device)).detach()
+            aa3 = torch.flatten(aa3init, start_dim = 2, end_dim=3)
+            aa3 = torch.reshape(aa3.transpose(1,2), (self.sizeforinit3))
+            clusters = np.array((torch.reshape(aa3, (self.sizeforinit3[0] * self.sizeforinit3[1], self.sizeforinit3[2])).cpu()))
+            clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
+            #self.codebook3 = clusters
+            self.codebook3, self.sigma[2] = self.train_bof_centers_with_ce(clusters, self.sigma[2], 3, train_iterations, self.center_train)
 
-        aa4init = self.activations(self.conv4(aa3init).to(device)).detach()
-        aa4 = torch.flatten(aa4init, start_dim = 2, end_dim=3)
-        aa4 = torch.reshape(aa4.transpose(1,2), (self.sizeforinit4))
-        clusters = np.array((torch.reshape(aa4, (self.sizeforinit4[0] * self.sizeforinit4[1], self.sizeforinit4[2])).cpu()))
-        clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
-        self.codebook4 = clusters
+        if self.use_hists >= 4:
+            aa4init = self.activations(self.conv4(aa3init).to(device)).detach()
+            aa4 = torch.flatten(aa4init, start_dim = 2, end_dim=3)
+            aa4 = torch.reshape(aa4.transpose(1,2), (self.sizeforinit4))
+            clusters = np.array((torch.reshape(aa4, (self.sizeforinit4[0] * self.sizeforinit4[1], self.sizeforinit4[2])).cpu()))
+            clusters = torch.tensor(KMC.fit(clusters).cluster_centers_, requires_grad = True)
+            #self.codebook4 = clusters
+            self.codebook4, self.sigma[3] = self.train_bof_centers_with_ce(clusters, self.sigma[3], 4, train_iterations, self.center_train)
 
         #Call the function train_bof_centers_with_ce to train the extracted cbs with ce loss and trained sigmas
         #self.codebook0, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook0, self.sigma[0], 0, train_iterations, self.center_initializer, self.center_initializer_y)
-        print('beforesigma ', self.sigma)
-        self.codebook1, self.sigma[0] = self.train_bof_centers_with_ce(self.codebook1, self.sigma[0], 1, train_iterations, self.center_train)
-        print('after', (self.codebook1[4]))
         
-        self.codebook2, self.sigma[1] = self.train_bof_centers_with_ce(self.codebook2, self.sigma[1], 2, train_iterations, self.center_train)
-        print('after', (self.codebook2[4]))
-
-        self.codebook3, self.sigma[2] = self.train_bof_centers_with_ce(self.codebook3, self.sigma[2], 3, train_iterations, self.center_train)
-        print('after', (self.codebook3[4]))
-
-        self.codebook4, self.sigma[3] = self.train_bof_centers_with_ce(self.codebook4, self.sigma[3], 4, train_iterations, self.center_train)
-        print('after', (self.codebook4[4]))
-        print('after', (self.sigma))
+        print('after cd1', (self.codebook1[4]))
+        print('after cd2', (self.codebook2[4]))
+        print('after cd3', (self.codebook3[4]))
+        print('after cd4', (self.codebook4[4]))
+        print('after sig', (self.sigma))
 
         #If we want to train centers for student
         
@@ -210,16 +210,16 @@ class ConvBOFVGG(nn.Module):
             for data, labels in train_loader:
                 data = data.to(device)
                 labels = labels.to(device)
+                optimizer.zero_grad()
                 out = model(data)
                 loss = criterion(out, labels)
                 #print(loss)
                 loss.backward()
                 #print(model.codebook.grad)
                 optimizer.step()
-                optimizer.zero_grad()
-            with torch.no_grad():
-                final_cb = model.codebook.detach().to(device)
-                final_sigma = model.sigma.detach().to(device)
+                
+        final_cb = model.codebook.detach().to(device)
+        final_sigma = model.sigma.detach().to(device)
 
         return final_cb, final_sigma
 
@@ -227,7 +227,7 @@ class ConvBOFVGG(nn.Module):
 
         x2 = self.activations(self.conv1(x.to(device)).to(device))
 
-        if self.start_bof_training:
+        if self.start_bof_training and self.use_hists >= 1:
             histogram1 = torch.flatten(x2, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
             histogram1 = histogram1.transpose(1,2)
             histogram1 = histogram1.unsqueeze(1)
@@ -242,7 +242,7 @@ class ConvBOFVGG(nn.Module):
 
         if self.arch1 == True:
             x3 = self.activations(self.conv2(x2.to(device)))
-            if self.start_bof_training:
+            if self.start_bof_training and self.use_hists >=2:
                 histogram2 = torch.flatten(x3, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram2 = histogram2.transpose(1,2)
                 histogram2 = histogram2.unsqueeze(1)
@@ -257,7 +257,7 @@ class ConvBOFVGG(nn.Module):
             x3 = self.pool1(x3)
         else:
             x3 = self.activations(self.conv2(x2.to(device)))
-            if self.start_bof_training:
+            if self.start_bof_training and self.use_hists >=2:
                 histogram2 = torch.flatten(x3, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram2 = histogram2.transpose(1,2)
                 histogram2 = histogram2.unsqueeze(1)
@@ -272,7 +272,7 @@ class ConvBOFVGG(nn.Module):
             x3 = self.pool2(x3)
         
         x4 = self.activations(self.conv3(x3.to(device)))
-        if self.start_bof_training:
+        if self.start_bof_training and self.use_hists >=3:
             histogram3 = torch.flatten(x4, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
             histogram3 = histogram3.transpose(1,2)
             histogram3 = histogram3.unsqueeze(1)
@@ -287,7 +287,7 @@ class ConvBOFVGG(nn.Module):
 
         if self.arch1 == False:
             x5 = self.activations(self.conv4(x4.to(device)))
-            if self.start_bof_training:
+            if self.start_bof_training and self.use_hists >=4:
                 histogram4 = torch.flatten(x5, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram4 = histogram4.transpose(1,2)
                 histogram4 = histogram4.unsqueeze(1)
@@ -302,7 +302,7 @@ class ConvBOFVGG(nn.Module):
             x = self.pool2_2(x5)
         else:
             x = self.activations(self.conv4(x4.to(device)))
-            if self.start_bof_training:
+            if self.start_bof_training and self.use_hists >=4:
                 histogram4 = torch.flatten(x, start_dim = 2, end_dim=3).to(device) #receives output of conv layer OR original input
                 histogram4 = histogram4.transpose(1,2)
                 histogram4 = histogram4.unsqueeze(1)
@@ -323,5 +323,14 @@ class ConvBOFVGG(nn.Module):
             histogram2 = torch.tensor(0)
             histogram3 = torch.tensor(0)
             histogram4 = torch.tensor(0)
+        elif self.use_hists == 1:
+            histogram2 = torch.tensor(0)
+            histogram3 = torch.tensor(0)
+            histogram4 = torch.tensor(0)
+        elif self.use_hists == 2:
+            histogram3 = torch.tensor(0)
+            histogram4 = torch.tensor(0)
+        elif self.use_hists == 3:
+            histogram4 = torch.tensor(0)
 
-        return x, histogram1, histogram2, histogram3, histogram4, x5#added x5 instead of x to run baseline knn test
+        return x, histogram1, histogram2, histogram3, histogram4#, x5#added x5 instead of x to run baseline knn test - now not needed

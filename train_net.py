@@ -23,9 +23,6 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-save_model = True
-load_model = False
-
 torch.manual_seed(20)
 np.random.seed(20)
 
@@ -37,7 +34,8 @@ argparser.add_argument('--batch_size', type=int,   default=250, help='Batch size
 argparser.add_argument('--epochs', type=int,   default=60, help='Epochs')
 argparser.add_argument('--k_means_iter', type=int,   default=500, help='K-means iterations')
 argparser.add_argument('--codebook_train_epochs', type=int,   default=50, help='Iterations over initializing batch sample for codebook training')
-argparser.add_argument('--arch', type=int,   default=2, help='Choose an architecture')
+argparser.add_argument('--student_arch', type=int,   default=2, help='Choose an architecture for student')
+argparser.add_argument('--teacher_arch', type=int,   default=3, help='Choose an architecture for teacher')
 argparser.add_argument('--eval_freq', type=int,   default=5, help='Calculate accuracy for train and test after __ epochs')
 argparser.add_argument('--bof_centers', type=int,   default=20, help='Number of trainable centers to be used by the BOF layer')
 argparser.add_argument('--path', type=str,   default="results", help='Path to save the results. It will create a dir')
@@ -60,20 +58,23 @@ for data,lab in bof_center_loader:
   bof_targs = lab
   break
 
-counter = 0
-
 os.system("mkdir " + args.path)
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number))
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_histograms/')
 
+#07-03 currently supporitng only first 2 hists for faster exp. runs
+if args.histogram_to_transfer == 0 or args.histogram_to_transfer == 5:
+    use_hists = 2
+elif args.histogram_to_transfer == 1:
+    use_hists = 1
 
 #=====================================#
 #Code below is used to train a teacher - can be skipped if we assume teacher has been trained and resides at path given in load
 #=====================================#
 #Initialize the network. This is required irregardless of whether or not we train -- as per 24-2 we use a fixed arch 2 teacher
 teacher = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device), center_train = train_subset_loader,
- clusters = args.bof_centers, arch = 2, quant_input = True, end_with_linear = False,
- activation = 'relu', path = args.path, exp_number = args.exp_number)
+ clusters = args.bof_centers, arch = args.teacher_arch, quant_input = True, end_with_linear = False,
+ activation = 'relu', path = args.path, exp_number = args.exp_number, use_hists=use_hists)
 teacher.to(device)
 
 # Optimizer
@@ -116,9 +117,10 @@ teacher.load_state_dict(model_dict)
 #==================================#
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
+ 
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
- clusters = args.bof_centers, arch = args.arch, quant_input = True, end_with_linear = False,
- activation = 'sin', path = args.path, exp_number = args.exp_number)
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.path, exp_number = args.exp_number, use_hists=use_hists)
 student.to(device)
 student.student_network = True
 
@@ -165,7 +167,7 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
     f.write(args.dataset)
     f.write("\n")
     f.write("arch: ")
-    f.write(str(args.arch))
+    f.write(str(args.student_arch))
     f.write("\n")
     f.write("net transfer level: ")
     f.write(str(args.histogram_to_transfer))
@@ -181,5 +183,11 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
     f.write("\n")
     f.write("epochs_init: ")
     f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
     f.write("\n")
     f.close()

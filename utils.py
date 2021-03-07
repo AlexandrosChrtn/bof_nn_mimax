@@ -90,12 +90,6 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         student.train()
         train_loss, correct, total, calculated_mi, calculated_mi2 = .0, .0, .0, .0, .0
         if epoch == (epoch_to_init - 1):
-            #if teacher2 != None and epoch < 30:
-            #    teacher = teacher2
-            #    teacher.prepare_centers(k_means_iter,codebook_iter)
-            #if teacher3 != None and epoch >= 30 and epoch < 60:
-            #    teacher = teacher3
-            #    teacher.prepare_centers(k_means_iter, codebook_iter)
             student.prepare_centers(k_means_iter,codebook_iter)
             teacher.prepare_centers(k_means_iter,codebook_iter)
             student.start_bof_training = True
@@ -107,10 +101,12 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             optimizer.zero_grad()
             #bof_params_optimizer.zero_grad()#Currently unavailable
 
-            out, hist1, hist2, hist3, hist4, _ = student(instances)#replaced hidden rep with histogram after pooling
+            out, hist1, hist2, hist3, hist4 = student(instances)#replaced hidden rep with histogram after pooling
             if epoch >= epoch_to_init - 1:
-                _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher, _ = teacher(instances)
-
+                _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
+            else:
+              _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = 0,0,0,0,0,0
+            
             #Ugly code but whatever works for now
             if histogram_to_transfer == 0:
                 if epoch < epoch_to_init + 30:
@@ -143,7 +139,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 vessel, vessel_teacher = hist4, hist4_teacher
                 coef = 0.6
 
-            if epoch < epoch_to_init - 1 or epoch >= 65:
+            if epoch < epoch_to_init - 1 or epoch >= 90:
                 loss = criterion(out, labels)
                 loss.backward()
                 student.start_bof_training = False
@@ -199,8 +195,8 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         #    torch.save(student.state_dict(), path + "/experiment_" + str(exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
             evaluate_model.evaluate_model_train_test(student, train_loader_original, test_loader, train_accuracy, test_accuracy)
-        if epoch > 20 and epoch % 10 == 0:
-            torch.save(student.state_dict(), path + "/experiment_"+str(exp_number) + "/"+str(epoch) + "model_checkpoint.pt")
+        if epoch > 20 and epoch % 30 == 0:
+            torch.save(student.state_dict(), path + "/experiment_"+str(exp_number) + "/"+str(epoch) + "_model_checkpoint.pt")
        
 
         print("\nLoss, acc = ", train_loss, correct / total, 'for epoch ', epoch + 1)
