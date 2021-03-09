@@ -42,9 +42,10 @@ def mkdir_and_vis_hist(hist1, hist2, hist3, hist4,labels,path, experiment_number
     vis_bof_histograms(hist3, labels, path, experiment_number,3, epoch)
     vis_bof_histograms(hist4, labels, path, experiment_number,4, epoch)
 
-def plot_accuracies(train_accuracy, test_accuracy, path, experiment_number, epochs):
+def plot_accuracies(train_accuracy, test_accuracy, path, experiment_number, epochs, eval_freq):
     plt.title('Accuracy train / test')
-    xi = (np.arange(5, epochs + 5, 5))
+    xi = (np.arange(1, len(train_accuracy), 1))
+    xi = xi * eval_freq
     plt.plot(xi,test_accuracy, label = 'test accuracy')
     plt.plot(xi,train_accuracy, label = 'train accuracy')
     plt.legend()

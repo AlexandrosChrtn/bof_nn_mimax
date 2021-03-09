@@ -8,6 +8,13 @@ from mi_estimation import mi_between_quantized
 
 from sklearn.neighbors import KNeighborsClassifier
 
+def calculate_mi_for_every_hist(hist1,hist2,hist3,hist4,hist1_teacher,hist2_teacher,hist3_teacher,hist4_teacher):
+    loss_hist1 = mi_between_quantized(hist1, hist1_teacher)
+    loss_hist2 = mi_between_quantized(hist2, hist2_teacher)
+    loss_hist3 = mi_between_quantized(hist3, hist3_teacher)
+    loss_hist4 = mi_between_quantized(hist4, hist4_teacher)
+    return loss_hist1, loss_hist2, loss_hist3, loss_hist4
+
 def train_bof_model(net, optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs, eval_freq, path, exp_number, k_means_iter, codebook_iter):
     """
     Trains a classification model
@@ -80,6 +87,10 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
     ce_loss = []
     mi_loss = []
     mi_loss2 = []
+    mi_hist1 = []
+    mi_hist2 = []
+    mi_hist3 = []
+    mi_hist4 = []
     accuracy_saver = []
     if check_baseline_knn_argument:
         knn_base = KNeighborsClassifier(n_neighbors = 3)
@@ -89,11 +100,14 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
     for epoch in range(epochs):
         student.train()
         train_loss, correct, total, calculated_mi, calculated_mi2 = .0, .0, .0, .0, .0
+        calculated_mi_for_histogram_1, calculated_mi_for_histogram_2, calculated_mi_for_histogram_3, calculated_mi_for_histogram_4 = .0,.0,.0,.0
         if epoch == (epoch_to_init - 1):
             student.prepare_centers(k_means_iter,codebook_iter)
             teacher.prepare_centers(k_means_iter,codebook_iter)
             student.start_bof_training = True
             teacher.start_bof_training = True
+            optimizer = torch.optim.Adam(student.parameters(), lr = 0.0001)
+            print(student.parameters())
 
         for (instances, labels) in train_loader:
             instances, labels = instances.to(device), labels.to(device)
@@ -101,12 +115,9 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             optimizer.zero_grad()
             #bof_params_optimizer.zero_grad()#Currently unavailable
 
-            out, hist1, hist2, hist3, hist4 = student(instances)#replaced hidden rep with histogram after pooling
-            if epoch >= epoch_to_init - 1:
-                _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
-            else:
-              _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = 0,0,0,0,0
-            
+            out, hist1, hist2, hist3, hist4 = student(instances)
+            _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
+
             #Ugly code but whatever works for now
             total_epochs_of_mi_max = 90
             if histogram_to_transfer == 0:
@@ -123,10 +134,10 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 #    vessel, vessel_teacher = hist4, hist4_teacher
                 #    coef = 0.6
             if histogram_to_transfer == 5:
-                    vessel, vessel_teacher = hist1, hist1_teacher
-                    coef1 = 0.2
-                    vessel2, vessel_teacher2 = hist2, hist2_teacher
-                    coef2 = 0.4
+                vessel, vessel_teacher = hist1, hist1_teacher
+                coef1 = 0.2
+                vessel2, vessel_teacher2 = hist2, hist2_teacher
+                coef2 = 0.4
             if histogram_to_transfer == 1:
                 vessel, vessel_teacher = hist1, hist1_teacher
                 coef = 0.05
@@ -142,6 +153,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
 
             if epoch < epoch_to_init - 1 or epoch >= total_epochs_of_mi_max:
                 loss = criterion(out, labels)
+                loss_hist1, loss_hist2, loss_hist3, loss_hist4 = calculate_mi_for_every_hist(hist1,hist2,hist3,hist4,hist1_teacher,hist2_teacher,hist3_teacher,hist4_teacher)
                 loss.backward()
                 student.start_bof_training = False
                 teacher.start_bof_training = False
@@ -149,13 +161,15 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
                 loss = loss1 - coef * loss2
-                loss.backward(retain_graph=True)   
+                loss.backward(retain_graph=True)
+                loss_hist1, loss_hist2, loss_hist3, loss_hist4 = calculate_mi_for_every_hist(hist1,hist2,hist3,hist4,hist1_teacher,hist2_teacher,hist3_teacher,hist4_teacher)
             else:
                 loss1 = criterion(out, labels)
                 loss2 = mi_between_quantized(vessel, vessel_teacher)
                 loss3 = mi_between_quantized(vessel2, vessel_teacher2)
                 loss = loss1 - coef1 * loss2- coef2 * loss3
                 loss.backward(retain_graph=True)
+                loss_hist1, loss_hist2, loss_hist3, loss_hist4 = calculate_mi_for_every_hist(hist1,hist2,hist3,hist4,hist1_teacher,hist2_teacher,hist3_teacher,hist4_teacher)
             
             optimizer.step()
             #bof_params_optimizer.step()#Currently unavailable
@@ -164,11 +178,15 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             if epoch < epoch_to_init - 1:
               train_loss += loss.data.item() / labels.size(0)
             else:
-              train_loss += loss1.data.item() / labels.size(0)
-              calculated_mi += loss2.data.item() / labels.size(0)
-              if histogram_to_transfer == 5:
-                calculated_mi2 += loss3.data.item() / labels.size(0)
-
+                train_loss += loss1.data.item() / labels.size(0)
+                calculated_mi += loss2.data.item() / labels.size(0)
+                if histogram_to_transfer == 5:
+                    calculated_mi2 += loss3.data.item() / labels.size(0)
+            calculated_mi_for_histogram_1 += loss_hist1.data.item() / labels.size(0)
+            calculated_mi_for_histogram_2 += loss_hist2.data.item() / labels.size(0)
+            calculated_mi_for_histogram_3 += loss_hist3.data.item() / labels.size(0)
+            calculated_mi_for_histogram_4 += loss_hist4.data.item() / labels.size(0)
+                
             _, predicted = torch.max(out.data, 1)
             total += labels.size(0)
             correct += predicted.eq(labels.data).cpu().sum().item()
@@ -176,7 +194,6 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             if check_baseline_knn_argument and epoch >= epoch_to_init - 1:
                 hist4 = torch.mean(hist4, dim = 1)
                 knn_base.fit(hist4.detach().cpu().numpy(), labels.cpu().numpy())
-
 
         ce_loss.append(train_loss)
         if check_baseline_knn_argument and epoch >= epoch_to_init - 1:
@@ -191,7 +208,11 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             mi_loss.append(calculated_mi)
             mi_loss2.append(calculated_mi2)
             #mi_loss.append(loss2.data.item())
-        #code below is repsonsible for evaluating every freq eval epochs
+        mi_hist1.append(calculated_mi_for_histogram_1)
+        mi_hist2.append(calculated_mi_for_histogram_2)
+        mi_hist3.append(calculated_mi_for_histogram_3)
+        mi_hist4.append(calculated_mi_for_histogram_4)
+
         #if epoch == 75:
         #    torch.save(student.state_dict(), path + "/experiment_" + str(exp_number) + "/model_ep75.pt")
         if epoch > 1 and (epoch % eval_freq == 0 or epoch == epochs - 1):
@@ -208,7 +229,7 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
 
 
     plot_accuracy_saver(accuracy_saver = accuracy_saver, path = path, experiment_number = exp_number)
-    plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
+    plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs, eval_freq=eval_freq)
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs, number = 1)
     plot_mi(mi = mi_loss2, experiment_number = exp_number, path = path, epochs = epochs, number = 2)

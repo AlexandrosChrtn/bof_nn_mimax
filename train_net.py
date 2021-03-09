@@ -23,6 +23,11 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 else torch.device('cpu'))
 print(f"Training on device {device}.")
 
+# study these later
+#torch.backends.cudnn.deterministic = False
+#torch.backends.cudnn.benchmark = False 
+
+
 torch.manual_seed(20)
 np.random.seed(20)
 
@@ -52,7 +57,7 @@ if args.dataset == 'cifar10':
 if args.dataset == 'mnist':
     train_loader, test_loader, train_original = data_python.mnist_loader(data_path='data', batch_size=args.batch_size)
 
-#This for samples a batch randomly to initialize bof layers -- 24-2-2021 uses 400 instances
+#This for samples a batch randomly to initialize bof layers -- 24-2-2021 uses 500 instances
 for data,lab in bof_center_loader:
   bof_cents = data
   bof_targs = lab
@@ -62,11 +67,8 @@ os.system("mkdir " + args.path)
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number))
 os.system("mkdir " + args.path + "/experiment_" + str(args.exp_number) + '/bof_histograms/')
 
-#07-03 currently supporitng only first 2 hists for faster exp. runs
-if args.histogram_to_transfer == 0 or args.histogram_to_transfer == 5:
-    use_hists = 2
-elif args.histogram_to_transfer == 1:
-    use_hists = 1
+#09-03 changed use_hists to 4 for all histogram_to_transfer to measure MI between every hist pair
+use_hists = 4
 
 #=====================================#
 #Code below is used to train a teacher - can be skipped if we assume teacher has been trained and resides at path given in load
