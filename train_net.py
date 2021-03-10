@@ -119,7 +119,6 @@ teacher.load_state_dict(model_dict)
 #==================================#
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
- 
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = args.exp_number, use_hists=use_hists)
@@ -151,7 +150,7 @@ criterion = nn.CrossEntropyLoss()
 #Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
 train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
-args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer)
+args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.1, coef2 = 0.1, coef3 = 0.1, coef4 = 0.1)
 
 #Saves the model in a model.pt file after the end of args.epochs epochs
 torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_after_transfer.pt")
@@ -193,3 +192,401 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
     f.write(str(args.teacher_arch))
     f.write("\n")
     f.close()
+#=========================================
+
+#==================================#
+#Code below is used to train the student using the quantized representation of the teacher in hist 3
+#==================================#
+exp2 = args.exp_number + 1
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.exp2 = exp2, use_hists=use_hists)
+student.to(device)
+student.student_network = True
+
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
+# Optimizer
+if args.optimizer == 'sgd':
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+elif args.optimizer == 'rmsprop':
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adadelta':
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adagrad':
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adam':
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+
+start = time.time()
+#Classification loss i.e. cross entropy loss
+criterion = nn.CrossEntropyLoss()
+
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
+train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
+args.path, exp2, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.25, coef2 = 0.25, coef3 = 0.25, coef4 = 0.25)
+
+#Saves the model in a model.pt file after the end of args.epochs epochs
+torch.save(student.state_dict(), args.path + "/experiment_" + str(exp2) + "/model_after_transfer.pt")
+
+end = time.time()
+print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(exp2) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.student_arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
+    f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
+    f.write("\n")
+    f.close()
+#=========================================
+
+#==================================#
+#Code below is used to train the student using the quantized representation of the teacher in hist 3
+#==================================#
+exp3 = args.exp_number + 3
+
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.path, exp_number = exp3, use_hists=use_hists)
+student.to(device)
+student.student_network = True
+
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
+# Optimizer
+if args.optimizer == 'sgd':
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+elif args.optimizer == 'rmsprop':
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adadelta':
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adagrad':
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adam':
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+
+start = time.time()
+#Classification loss i.e. cross entropy loss
+criterion = nn.CrossEntropyLoss()
+
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
+train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
+args.path, exp3, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.01, coef2 = 0.01, coef3 = 0.01, coef4 = 0.01)
+
+#Saves the model in a model.pt file after the end of args.epochs epochs
+torch.save(student.state_dict(), args.path + "/experiment_" + str(exp3) + "/model_after_transfer.pt")
+
+end = time.time()
+print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(exp3) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.student_arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
+    f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
+    f.write("\n")
+    f.close()
+#=========================================
+
+#==================================#
+#Code below is used to train the student using the quantized representation of the teacher in hist 3
+#==================================#
+exp4 = args.exp_number + 4
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.path, exp_number = exp4, use_hists=use_hists)
+student.to(device)
+student.student_network = True
+
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
+# Optimizer
+if args.optimizer == 'sgd':
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+elif args.optimizer == 'rmsprop':
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adadelta':
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adagrad':
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adam':
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+
+start = time.time()
+#Classification loss i.e. cross entropy loss
+criterion = nn.CrossEntropyLoss()
+
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
+train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
+args.path, exp4, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.001, coef2 = 0.001, coef3 = 0.001, coef4 = 0.001)
+
+#Saves the model in a model.pt file after the end of args.epochs epochs
+torch.save(student.state_dict(), args.path + "/experiment_" + str(exp4) + "/model_after_transfer.pt")
+
+end = time.time()
+print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(exp4) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.student_arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
+    f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
+    f.write("\n")
+    f.close()
+#=========================================
+
+#==================================#
+#Code below is used to train the student using the quantized representation of the teacher in hist 3
+#==================================#
+exp5 = args.exp_number + 5
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.path, exp_number = exp5, use_hists=use_hists)
+student.to(device)
+student.student_network = True
+
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
+# Optimizer
+if args.optimizer == 'sgd':
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+elif args.optimizer == 'rmsprop':
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adadelta':
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adagrad':
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adam':
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+
+start = time.time()
+#Classification loss i.e. cross entropy loss
+criterion = nn.CrossEntropyLoss()
+
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
+train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
+args.path, exp5, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.8, coef2 = 0.8, coef3 = 0.8, coef4 = 0.8)
+
+#Saves the model in a model.pt file after the end of args.epochs epochs
+torch.save(student.state_dict(), args.path + "/experiment_" + str(exp5) + "/model_after_transfer.pt")
+
+end = time.time()
+print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(exp5) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.student_arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
+    f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
+    f.write("\n")
+    f.close()
+#=========================================
+
+#==================================#
+#Code below is used to train the student using the quantized representation of the teacher in hist 3
+#==================================#
+exp6 = args.exp_number + 6
+
+student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
+ clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
+ activation = 'sin', path = args.path, exp_number = exp6, use_hists=use_hists)
+student.to(device)
+student.student_network = True
+
+#NOTE: The use of a different optimizer with potentially different lr for the centers may be used later. Anycase the argument optimizer_for_centers in the followin train_bof_for_kt func
+# will remain there for now
+non_bof_params = [student.conv1.weight, student.conv1.bias, student.conv2.weight, student.conv2.bias, student.conv3.weight, student.conv3.bias, 
+student.conv4.weight, student.conv4.bias, student.conv5.weight, student.conv5.bias]
+optimizer_for_centers = torch.optim.Adam([student.codebook1, student.codebook2, student.codebook3, student.codebook4, student.sigma], lr=0.001)
+
+# Optimizer
+if args.optimizer == 'sgd':
+    optimizer = torch.optim.SGD(student.parameters(),lr= args.lr)
+elif args.optimizer == 'rmsprop':
+    optimizer = torch.optim.RMSprop(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adadelta':
+    optimizer = torch.optim.Adadelta(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adagrad':
+    optimizer = torch.optim.Adagrad(student.parameters(),lr= args.lr)
+elif args.optimizer == 'adam':
+    optimizer = torch.optim.Adam(student.parameters(),lr= args.lr)
+
+start = time.time()
+#Classification loss i.e. cross entropy loss
+criterion = nn.CrossEntropyLoss()
+
+#Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
+train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
+train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
+args.path, exp6, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 1.25, coef2 = 1.25, coef3 = 1.25, coef4 = 1.25)
+
+#Saves the model in a model.pt file after the end of args.epochs epochs
+torch.save(student.state_dict(), args.path + "/experiment_" + str(exp6) + "/model_after_transfer.pt")
+
+end = time.time()
+print("Student training time: ", end - start, "sec")
+
+with open(args.path + '/experiment_' + str(exp6) + '/params.txt', 'w') as f:
+    f.write("Epochs: ")
+    f.write(str(args.epochs))
+    f.write("\n")
+    f.write("Notes: ")
+    f.write(' ')
+    f.write("Dataset: ")
+    f.write(args.dataset)
+    f.write("\n")
+    f.write("arch: ")
+    f.write(str(args.student_arch))
+    f.write("\n")
+    f.write("net transfer level: ")
+    f.write(str(args.histogram_to_transfer))
+    f.write("\n")
+    f.write("Train acc: ")
+    f.write(str(train_acc_list))
+    f.write("\n")
+    f.write("Test acc: ")
+    f.write(str(test_acc_list))
+    f.write("\n")
+    f.write("Accuracy saver: ")
+    f.write(str(accuracy_saver))
+    f.write("\n")
+    f.write("epochs_init: ")
+    f.write(str(args.epochs_init))
+    f.write("\n")
+    f.write("teacher path: ")
+    f.write((args.load_model_path))
+    f.write("\n")
+    f.write("Teacher_arch: ")
+    f.write(str(args.teacher_arch))
+    f.write("\n")
+    f.close()
+#=========================================

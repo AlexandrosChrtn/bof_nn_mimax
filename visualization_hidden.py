@@ -59,8 +59,6 @@ def plot_accuracy_saver(accuracy_saver, path, experiment_number):
     plt.savefig(path + '/experiment_' + str(experiment_number) + '/accuracy_every_epoch_plot')
     plt.clf()
 
-
-
 def plot_loss(loss, experiment_number, path, epochs):
     plt.title("Loss")
     plt.xlabel("epochs")

@@ -63,12 +63,12 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
        
 
         print("\nLoss, acc = ", train_loss, correct / total)
-    plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs)
+    plot_accuracies(train_accuracy = train_accuracy, test_accuracy = test_accuracy, path = path, experiment_number = exp_number, epochs = epochs, eval_freq = eval_freq)
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
 
 
 def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
- eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, check_baseline_knn_argument = False, teacher2 = None, teacher3 = None):
+ eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, coef1, coef2, coef3, coef4, check_baseline_knn_argument = False):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -107,7 +107,6 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             student.start_bof_training = True
             teacher.start_bof_training = True
             optimizer = torch.optim.Adam(student.parameters(), lr = 0.0001)
-            print(student.parameters())
 
         for (instances, labels) in train_loader:
             instances, labels = instances.to(device), labels.to(device)
@@ -119,20 +118,20 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
             _, hist1_teacher, hist2_teacher, hist3_teacher, hist4_teacher = teacher(instances)
 
             #Ugly code but whatever works for now
-            total_epochs_of_mi_max = 90
+            total_epochs_of_mi_max = 110
             if histogram_to_transfer == 0:
-                if epoch < epoch_to_init + 45:
+                if epoch < epoch_to_init + 25:
                     vessel, vessel_teacher = hist1, hist1_teacher
-                    coef = 0.5
-                if epoch >= epoch_to_init + 45 and epoch < epoch_to_init + total_epochs_of_mi_max:
+                    coef = coef1
+                if epoch >= epoch_to_init + 25 and epoch < epoch_to_init + 50:
                     vessel, vessel_teacher = hist2, hist2_teacher
-                    coef = 0.85
-                #if epoch >= epoch_to_init + 30 and epoch < epoch_to_init + 45:
-                #    vessel, vessel_teacher = hist3, hist3_teacher
-                #    coef = 0.4
-                #if epoch >= epoch_to_init + 45:
-                #    vessel, vessel_teacher = hist4, hist4_teacher
-                #    coef = 0.6
+                    coef = coef2
+                if epoch >= epoch_to_init + 50 and epoch < epoch_to_init + 75:
+                    vessel, vessel_teacher = hist3, hist3_teacher
+                    coef = coef3
+                if epoch >= epoch_to_init + 75:
+                    vessel, vessel_teacher = hist4, hist4_teacher
+                    coef = coef4
             if histogram_to_transfer == 5:
                 vessel, vessel_teacher = hist1, hist1_teacher
                 coef1 = 0.2
@@ -233,4 +232,9 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
     plot_loss(loss = ce_loss, experiment_number = exp_number, path = path, epochs = epochs)
     plot_mi(mi = mi_loss, experiment_number = exp_number, path = path, epochs = epochs, number = 1)
     plot_mi(mi = mi_loss2, experiment_number = exp_number, path = path, epochs = epochs, number = 2)
+    
+    plot_mi(mi = mi_hist1, experiment_number = exp_number, path = path, epochs = epochs, number = 3)
+    plot_mi(mi = mi_hist2, experiment_number = exp_number, path = path, epochs = epochs, number = 4)
+    plot_mi(mi = mi_hist3, experiment_number = exp_number, path = path, epochs = epochs, number = 5)
+    plot_mi(mi = mi_hist4, experiment_number = exp_number, path = path, epochs = epochs, number = 6)
     return train_accuracy, test_accuracy, accuracy_saver
