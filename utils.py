@@ -68,7 +68,7 @@ def train_bof_model(net, optimizer, criterion, train_loader, train_loader_origin
 
 
 def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterion, train_loader, train_loader_original, test_loader, epoch_to_init, epochs,
- eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, coef1, coef2, coef3, coef4, check_baseline_knn_argument = False):
+ eval_freq, path, exp_number, k_means_iter, codebook_iter, histogram_to_transfer, coef1, coef2, coef3, coef4, train_hist_for_teacher = False, check_baseline_knn_argument = False):
     """
     Trains a classification model
     :param student: model to train using knowledge from teacher
@@ -103,7 +103,8 @@ def train_bof_for_kt(student, teacher, optimizer, bof_params_optimizer, criterio
         calculated_mi_for_histogram_1, calculated_mi_for_histogram_2, calculated_mi_for_histogram_3, calculated_mi_for_histogram_4 = .0,.0,.0,.0
         if epoch == (epoch_to_init - 1):
             student.prepare_centers(k_means_iter,codebook_iter)
-            teacher.prepare_centers(k_means_iter,codebook_iter)
+            if train_hist_for_teacher:
+                teacher.prepare_centers(k_means_iter,codebook_iter)
             student.start_bof_training = True
             teacher.start_bof_training = True
             optimizer = torch.optim.Adam(student.parameters(), lr = 0.0001)

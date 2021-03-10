@@ -150,7 +150,7 @@ criterion = nn.CrossEntropyLoss()
 #Train_original is used if image augmentation takes place // had it to return accuracies instead of void to save everything in log
 train_acc_list, test_acc_list, accuracy_saver = utils.train_bof_for_kt(student, teacher, optimizer, optimizer_for_centers, criterion, train_loader,
 train_original, test_loader, args.epochs_init, args.epochs, args.eval_freq, 
-args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.1, coef2 = 0.1, coef3 = 0.1, coef4 = 0.1)
+args.path, args.exp_number, args.k_means_iter, args.codebook_train_epochs, args.histogram_to_transfer, coef1 = 0.1, coef2 = 0.1, coef3 = 0.1, coef4 = 0.1,train_hist_for_teacher = True)
 
 #Saves the model in a model.pt file after the end of args.epochs epochs
 torch.save(student.state_dict(), args.path + "/experiment_" + str(args.exp_number) + "/model_after_transfer.pt")
@@ -198,9 +198,13 @@ with open(args.path + '/experiment_' + str(args.exp_number) + '/params.txt', 'w'
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 exp2 = args.exp_number + 1
+os.system("mkdir " + args.path)
+os.system("mkdir " + args.path + "/experiment_" + str(exp2))
+os.system("mkdir " + args.path + "/experiment_" + str(exp2) + '/bof_histograms/')
+
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
- activation = 'sin', path = args.exp2 = exp2, use_hists=use_hists)
+ activation = 'sin', path = args.path, exp_number = exp2, use_hists=use_hists)
 student.to(device)
 student.student_network = True
 
@@ -277,6 +281,10 @@ with open(args.path + '/experiment_' + str(exp2) + '/params.txt', 'w') as f:
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 exp3 = args.exp_number + 3
+os.system("mkdir " + args.path)
+os.system("mkdir " + args.path + "/experiment_" + str(exp3))
+os.system("mkdir " + args.path + "/experiment_" + str(exp3) + '/bof_histograms/')
+
 
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
@@ -357,6 +365,10 @@ with open(args.path + '/experiment_' + str(exp3) + '/params.txt', 'w') as f:
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 exp4 = args.exp_number + 4
+os.system("mkdir " + args.path)
+os.system("mkdir " + args.path + "/experiment_" + str(exp4))
+os.system("mkdir " + args.path + "/experiment_" + str(exp4) + '/bof_histograms/')
+
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = exp4, use_hists=use_hists)
@@ -436,6 +448,10 @@ with open(args.path + '/experiment_' + str(exp4) + '/params.txt', 'w') as f:
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 exp5 = args.exp_number + 5
+os.system("mkdir " + args.path)
+os.system("mkdir " + args.path + "/experiment_" + str(exp5))
+os.system("mkdir " + args.path + "/experiment_" + str(exp5) + '/bof_histograms/')
+
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
  activation = 'sin', path = args.path, exp_number = exp5, use_hists=use_hists)
@@ -515,6 +531,9 @@ with open(args.path + '/experiment_' + str(exp5) + '/params.txt', 'w') as f:
 #Code below is used to train the student using the quantized representation of the teacher in hist 3
 #==================================#
 exp6 = args.exp_number + 6
+os.system("mkdir " + args.path)
+os.system("mkdir " + args.path + "/experiment_" + str(exp6))
+os.system("mkdir " + args.path + "/experiment_" + str(exp6) + '/bof_histograms/')
 
 student = bof_parallel_net.ConvBOFVGG(center_initial = bof_cents.to(device), center_initial_y = bof_targs.to(device),  center_train = train_subset_loader,
  clusters = args.bof_centers, arch = args.student_arch, quant_input = True, end_with_linear = False,
